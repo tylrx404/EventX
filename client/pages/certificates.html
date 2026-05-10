@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Certificates — MMCOE Event Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/style.css"/>
+<style>
+@media print {
+  body > *:not(#certPrintArea) { display: none !important; }
+  #certPrintArea {
+    display: block !important; position: fixed; inset: 0;
+    background: #fff; display: flex; align-items: center; justify-content: center; padding: 1rem;
+  }
+  #certPrintArea .cert-doc { box-shadow: none !important; }
+}
+
+.cert-doc {
+  font-family: 'Inter', sans-serif;
+  background: #fff;
+  border: 12px solid transparent;
+  border-image: linear-gradient(135deg, #1a3a8f, #f5a623, #1a3a8f) 1;
+  border-radius: 0;
+  padding: 3rem;
+  max-width: 700px;
+  position: relative;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+}
+.cert-doc::before {
+  content: '';
+  position: absolute;
+  inset: 16px;
+  border: 1px solid rgba(26,58,143,0.15);
+  pointer-events: none;
+}
+.cert-corner {
+  position: absolute;
+  width: 50px; height: 50px;
+}
+.cert-corner.tl { top: 20px; left: 20px; border-top: 3px solid var(--amber); border-left: 3px solid var(--amber); }
+.cert-corner.tr { top: 20px; right: 20px; border-top: 3px solid var(--amber); border-right: 3px solid var(--amber); }
+.cert-corner.bl { bottom: 20px; left: 20px; border-bottom: 3px solid var(--amber); border-left: 3px solid var(--amber); }
+.cert-corner.br { bottom: 20px; right: 20px; border-bottom: 3px solid var(--amber); border-right: 3px solid var(--amber); }
+</style>
+</head>
+<body>
+<div id="_nav"></div>
+<div id="_notif"></div>
+
+<div class="app">
+  <div id="_side"></div>
+  <main class="main">
+    <div class="ph"><div><h1>Certificates</h1><p>Download your participation and achievement certificates.</p></div></div>
+    <div id="certList"><div class="empty"><div class="icon">⏳</div><p>Loading…</p></div></div>
+  </main>
+</div>
+
+<div class="overlay" id="certOverlay">
+  <div class="modal" style="max-width:740px">
+    <div class="modal-hd">
+      <h3>Certificate of Participation</h3>
+      <button class="modal-close" onclick="document.getElementById('certOverlay').classList.remove('open')"></button>
+    </div>
+    <div class="modal-bd" style="overflow-y:auto;max-height:72vh">
+      <div id="certDoc" class="cert-doc">
+        <div class="cert-corner tl"></div>
+        <div class="cert-corner tr"></div>
+        <div class="cert-corner bl"></div>
+        <div class="cert-corner br"></div>
+
+        <div style="text-align:center;margin-bottom:1.5rem">
+          <div style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:var(--navy);border-radius:10px;margin-bottom:0.75rem">
+            <svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="3" width="28" height="28">
+              <path d="M24 4L6 14v10c0 11 8 20 18 22 10-2 18-11 18-22V14L24 4z"/>
+              <path d="M18 24l4 4 8-8"/>
+            </svg>
+          </div>
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:2px">Marathwada Mitra Mandal's</div>
+          <div style="font-size:0.85rem;font-weight:800;color:var(--navy)">College of Engineering, Pune</div>
+        </div>
+
+        <div style="text-align:center;margin-bottom:1.75rem">
+          <div style="font-family:'Playfair Display',serif;font-size:2.4rem;font-weight:700;color:var(--navy);letter-spacing:-0.5px;line-height:1;margin-bottom:6px">Certificate</div>
+          <div id="certTypeLabel" style="font-size:0.8rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase">of Participation</div>
+        </div>
+
+        <div style="text-align:center;margin-bottom:1.5rem">
+          <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.6rem">This is to certify that</div>
+          <div id="cName" style="font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:700;color:var(--navy);border-bottom:3px solid var(--amber);display:inline-block;padding-bottom:4px;min-width:200px;margin-bottom:0.6rem">—</div>
+          <div id="cDeptYear" style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem"></div>
+          <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.35rem">has successfully</div>
+          <div id="certActionLabel" style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:0.35rem">participated in</div>
+          <div id="cEvent" style="font-size:1.1rem;font-weight:800;color:var(--navy);margin-bottom:0.25rem">—</div>
+          <div id="cRole" style="font-size:0.8rem;font-weight:600;color:var(--muted);background:#f0f4fb;display:inline-block;padding:3px 12px;border-radius:99px;margin-bottom:0.5rem">Participant</div>
+        </div>
+
+        <div style="border-top:1px solid var(--border);padding-top:1.25rem;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem">
+          <div>
+            <div style="width:120px;border-top:2px solid var(--navy);padding-top:4px;margin-bottom:2px"></div>
+            <div style="font-size:0.68rem;color:var(--muted)">Event Coordinator</div>
+          </div>
+          <div style="text-align:center">
+            <div id="cDate" style="font-size:0.78rem;color:var(--muted);margin-bottom:2px">—</div>
+            <div style="font-size:0.62rem;color:var(--light)">Date of Issue</div>
+          </div>
+          <div style="text-align:right">
+            <div style="width:120px;border-top:2px solid var(--navy);padding-top:4px;margin-bottom:2px;margin-left:auto"></div>
+            <div style="font-size:0.68rem;color:var(--muted)">Principal, MMCOE</div>
+          </div>
+        </div>
+
+        <div style="text-align:center;margin-top:1rem">
+          <div id="certIdLabel" style="font-size:0.62rem;color:var(--light);font-family:monospace"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="document.getElementById('certOverlay').classList.remove('open')">Close</button>
+      <button class="btn btn-primary" onclick="window.print()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Download PDF
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="certPrintArea" style="display:none"></div>
+
+<script src="../js/auth.js"></script>
+<script src="../js/shared.js"></script>
+<script>
+const user = requireAuth();
+if (!user) throw '';
+
+document.getElementById('_nav').innerHTML = renderTopnav('dashboard');
+document.getElementById('_side').innerHTML = renderStudentSidebar('certs');
+document.getElementById('_notif').innerHTML = renderNotifDrawer();
+
+function openCert(title, date, position, certId) {
+  const isWinner = position && position !== 'Participant' && position !== 'participant';
+  document.getElementById('cName').textContent = user.name || 'Student';
+  document.getElementById('cDeptYear').textContent = [user.department, user.year].filter(Boolean).join(' · ');
+  document.getElementById('cEvent').textContent = title;
+  document.getElementById('cRole').textContent = position || 'Participant';
+
+  if (isWinner) {
+    document.getElementById('certTypeLabel').textContent = 'of Achievement';
+    document.getElementById('certActionLabel').textContent = 'achieved ' + position + ' in';
+  } else {
+    document.getElementById('certTypeLabel').textContent = 'of Participation';
+    document.getElementById('certActionLabel').textContent = 'participated in';
+  }
+
+  document.getElementById('cDate').textContent = fmtDate(date, { month: 'long', day: 'numeric', year: 'numeric' });
+  document.getElementById('certIdLabel').textContent = certId ? 'Certificate ID: ' + certId : '';
+
+  document.getElementById('certOverlay').classList.add('open');
+
+  setTimeout(() => {
+    const area = document.getElementById('certPrintArea');
+    const certDoc = document.getElementById('certDoc');
+    area.innerHTML = certDoc.outerHTML;
+  }, 100);
+}
+
+async function load() {
+  try {
+    const r = await fetch(API + "/certificates", { headers: authHeaders() });
+    const d = await r.json();
+    const el = document.getElementById('certList');
+    if (!Array.isArray(d) || !d.length) {
+      el.innerHTML = `<div class="empty"><div class="icon"></div><h3>No certificates yet</h3><p>Participate in events to earn certificates.</p><a href="events.html" class="btn btn-primary" style="margin-top:1rem">Browse Events</a></div>`;
+      return;
+    }
+    el.innerHTML = d.map(c => {
+      const isWinner = c.position && c.position !== 'Participant';
+      const date = c.event_date || c.issued_at || new Date().toISOString();
+      const certId = c.id ? 'MMCOE-CERT-' + String(c.id).padStart(6, '0') : '';
+      return `
+      <div class="cert-item ${isWinner ? 'gold' : ''}">
+        <div class="cert-ico">${isWinner ? '' : ''}</div>
+        <div class="cert-info">
+          <div class="cert-title">${c.event_title || 'Event'}</div>
+          <div class="cert-meta">${c.position || 'Participant'} · ${fmtDate(date, { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+          ${certId ? `<div style="font-size:0.68rem;color:var(--light);font-family:monospace;margin-top:2px">${certId}</div>` : ''}
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openCert('${(c.event_title || '').replace(/'/g, "\\'")}','${date}','${c.position || 'Participant'}','${certId}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download
+        </button>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    document.getElementById('certList').innerHTML = '<div class="empty"><p>Could not load certificates.</p></div>';
+  }
+}
+
+fetchAndRenderNotifs();
+load();
+</script>
+</body>
+</html>

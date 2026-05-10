@@ -1,0 +1,228 @@
+const db     = require("../db");
+const QRCode = require("qrcode");
+const crypto = require("crypto");
+const { pushNotification } = require("./notificationController");
+
+exports.registerEvent = async (req, res) => {
+  try {
+    const user_id = req.user.id;
+    const { event_id, team_name } = req.body;
+
+    if (!event_id)
+      return res.status(400).json({ message: "event_id is required." });
+
+    const [existing] = await db.execute(
+      "SELECT id FROM Registrations WHERE user_id=? AND event_id=?",
+      [user_id, event_id]
+    );
+    if (existing.length > 0)
+      return res.status(400).json({ message: "You are already registered for this event." });
+
+    const [cap] = await db.execute(`
+      SELECT e.title, e.max_participants, e.status, e.approval_status, COUNT(r.id) AS cnt
+      FROM Events e
+      LEFT JOIN Registrations r ON r.event_id = e.id
+      WHERE e.id = ?
+      GROUP BY e.id
+    `, [event_id]);
+
+    if (!cap.length)
+      return res.status(404).json({ message: "Event not found." });
+
+    const { title, max_participants, status, approval_status, cnt } = cap[0];
+
+    if (approval_status !== "approved")
+      return res.status(400).json({ message: "This event is not open for registration yet." });
+    if (["completed", "ongoing"].includes(status))
+      return res.status(400).json({ message: "Registration is closed for this event." });
+    if (status === "registration_closed")
+      return res.status(400).json({ message: "Registration deadline has passed." });
+    if (max_participants > 0 && cnt >= max_participants)
+      return res.status(400).json({ message: "This event is full." });
+
+    const ticketId = "TKT-" +
+      Date.now().toString(36).toUpperCase() + "-" +
+      crypto.randomBytes(3).toString("hex").toUpperCase();
+
+    const qrPayload  = JSON.stringify({ ticket_id: ticketId, user_id, event_id, token: crypto.randomBytes(20).toString("hex") });
+    const qrDataURL  = await QRCode.toDataURL(qrPayload, { width: 300, margin: 2 });
+
+    const [result] = await db.execute(
+      "INSERT INTO Registrations (user_id, event_id, ticket_id, team_name, status, qr_code) VALUES (?,?,?,?,'registered',?)",
+      [user_id, event_id, ticketId, team_name || null, qrDataURL]
+    );
+
+    await pushNotification(user_id, "success", "",
+      "Registration Confirmed",
+      `You are registered for "${title}". Your ticket ID is ${ticketId}.`
+    );
+
+    const [ev] = await db.execute("SELECT host_id FROM Events WHERE id=?", [event_id]);
+    if (ev.length && ev[0].host_id) {
+      await pushNotification(ev[0].host_id, "info", "",
+        "New Participant",
+        `Someone just registered for your event "${title}".`
+      );
+    }
+
+    res.status(201).json({
+      message:         "Registered successfully!",
+      registration_id: result.insertId,
+      ticket_id:       ticketId,
+      qr_code:         qrDataURL
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+exports.myRegistrations = async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT 
+        r.id AS registration_id, 
+        r.ticket_id, 
+        r.qr_code, 
+        r.status AS reg_status, 
+        r.created_at AS registered_at, -- Fix: Use created_at
+        e.id AS id,                   -- Fix: Standardizing 'id' for frontend
+        e.title,                      -- Standard key name
+        e.date,                       -- Standard key name
+        e.venue, 
+        e.category, 
+        e.poster
+      FROM Registrations r
+      JOIN Events e ON r.event_id = e.id
+      WHERE r.user_id = ?
+      ORDER BY e.date ASC
+    `, [req.user.id]);
+
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error("MY REGISTRATIONS ERROR:", err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+exports.myEvents = async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT 
+        e.*, 
+        r.status AS reg_status, 
+        r.qr_code, 
+        r.ticket_id,
+        r.created_at AS registered_at -- Fix: Use created_at
+      FROM Registrations r
+      JOIN Events e ON r.event_id = e.id
+      WHERE r.user_id = ?
+      ORDER BY e.date ASC
+    `, [req.user.id]);
+
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error("MY EVENTS ERROR:", err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+exports.myEvents = async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT e.*, r.status AS reg_status, r.qr_code, r.ticket_id
+      FROM Registrations r
+      JOIN Events e ON r.event_id = e.id
+      WHERE r.user_id = ?
+      ORDER BY e.date ASC
+    `, [req.user.id]);
+
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+exports.myScores = async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT r.score, r.position, r.registration_date,
+             e.id AS event_id, e.title AS event_title, e.date AS event_date, e.category
+      FROM Registrations r
+      JOIN Events e ON r.event_id = e.id
+      WHERE r.user_id = ? AND r.score IS NOT NULL
+      ORDER BY e.date DESC
+    `, [req.user.id]);
+
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+exports.getCertificates = async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT
+        c.id,
+        c.position,
+        c.issued_at,
+        e.id          AS event_id,
+        e.title       AS event_title,
+        e.date        AS event_date,
+        e.category,
+        e.cert_template,
+        e.cert_fields
+      FROM Certificates c
+      JOIN Events e ON c.event_id = e.id
+      WHERE c.user_id = ?
+      ORDER BY c.issued_at DESC
+    `, [req.user.id]);
+
+    rows.forEach(r => {
+      if (r.cert_fields && typeof r.cert_fields === "string") {
+        try { r.cert_fields = JSON.parse(r.cert_fields); } catch { r.cert_fields = null; }
+      }
+    });
+
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+exports.verifyQR = async (req, res) => {
+  try {
+    const { qr_data } = req.body;
+    if (!qr_data) return res.status(400).json({ valid: false, message: "No QR data." });
+
+    let parsed;
+    try { parsed = JSON.parse(qr_data); }
+    catch { return res.status(400).json({ valid: false, message: "Invalid QR format." }); }
+
+    const { ticket_id, user_id, event_id } = parsed;
+    if (!ticket_id || !user_id || !event_id)
+      return res.status(400).json({ valid: false, message: "Incomplete QR data." });
+
+    const [rows] = await db.execute(`
+      SELECT r.id, r.ticket_id, r.status, r.registration_date AS registered_at,
+             u.name, u.email, u.department, u.year,
+             e.title AS event_title, e.date AS event_date, e.venue
+      FROM Registrations r
+      JOIN Users  u ON r.user_id  = u.id
+      JOIN Events e ON r.event_id = e.id
+      WHERE r.ticket_id=? AND r.user_id=? AND r.event_id=?
+    `, [ticket_id, user_id, event_id]);
+
+    if (!rows.length)
+      return res.status(404).json({ valid: false, message: "Invalid QR code." });
+
+    res.status(200).json({ valid: true, registration: rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ valid: false, message: "Internal server error." });
+  }
+};

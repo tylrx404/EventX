@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>My Events — MMCOE Event Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div id="_nav"></div>
+<div id="_notif"></div>
+
+<div class="app">
+  <div id="_side"></div>
+  <main class="main">
+    <div class="ph"><div><h1>My Events</h1><p>Your registered events and QR tickets.</p></div></div>
+    <div id="ticketList"><div class="empty"><div class="icon">⏳</div><p>Loading…</p></div></div>
+    <p id="footerNote" style="display:none;text-align:center;font-size:0.78rem;color:var(--muted);font-style:italic;margin-top:1rem">Show this QR code at the event entrance for quick check-in.</p>
+  </main>
+</div>
+
+<!-- Download Ticket Modal -->
+<div class="overlay" id="ticketOverlay">
+  <div class="modal" style="max-width:340px">
+    <div id="ticketPrint" class="print-area" style="background:#fff;border-radius:10px;overflow:hidden">
+      <div style="background:var(--navy);color:#fff;padding:1rem;text-align:center">
+        <div style="font-size:0.88rem;font-weight:700">MMCOE Event Portal</div>
+        <div style="font-size:0.72rem;opacity:0.8">Event Entry Ticket</div>
+      </div>
+      <div style="padding:1.5rem;text-align:center">
+        <img id="tQR" src="" style="width:140px;height:140px;margin-bottom:1rem;display:block;margin:0 auto 1rem"/>
+        <div style="font-size:1rem;font-weight:700;color:var(--navy)" id="tTitle">—</div>
+        <div style="font-size:0.8rem;color:var(--muted);margin-top:3px" id="tDate">—</div>
+        <hr style="border:none;border-top:2px dashed var(--border);margin:0.75rem 0"/>
+        <div style="font-size:0.75rem;font-weight:600;color:var(--muted)">Ticket ID: <span id="tId">—</span></div>
+        <div style="font-size:0.7rem;color:var(--light);margin-top:3px">Show this QR code at the event entrance</div>
+      </div>
+      <div style="background:#f9fafb;padding:0.75rem;text-align:center;font-size:0.68rem;color:var(--muted);border-top:1px solid var(--border)">
+        Marathwada Mitra Mandal's College of Engineering, Karvenagar, Pune<br/>mmcoe.edu.in
+      </div>
+    </div>
+    <div style="padding:0.875rem;display:flex;gap:0.6rem;justify-content:center">
+      <button class="btn btn-ghost" onclick="document.getElementById('ticketOverlay').classList.remove('open')">Close</button>
+      <button class="btn btn-primary" onclick="window.print()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print / Save PDF
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/auth.js"></script>
+<script src="../js/shared.js"></script>
+<script>
+const user = requireAuth();
+if (!user) throw '';
+document.getElementById('_nav').innerHTML  = renderTopnav('dashboard');
+document.getElementById('_side').innerHTML = renderStudentSidebar('myevents');
+document.getElementById('_notif').innerHTML= renderNotifDrawer();
+
+function openTicket(title, date, tid, qr) {
+  document.getElementById('tTitle').textContent = title;
+  document.getElementById('tDate').textContent  = fmtDate(date, {month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('tId').textContent    = tid;
+  document.getElementById('tQR').src = qr || '';
+  document.getElementById('ticketOverlay').classList.add('open');
+}
+
+async function load() {
+  try {
+    const r = await fetch(API+"/my-registrations", {headers:authHeaders()});
+    const d = await r.json();
+    const el = document.getElementById('ticketList');
+    if (!Array.isArray(d) || !d.length) {
+      el.innerHTML = `<div class="empty"><div class="icon">🎫</div><h3>No registrations yet</h3><p>Browse events and register to see your tickets here.</p><a href="events.html" class="btn btn-primary" style="margin-top:1rem">Browse Events</a></div>`;
+      return;
+    }
+    document.getElementById('footerNote').style.display = 'block';
+    el.innerHTML = d.map((reg,i)=>{
+      const tid = reg.ticket_id || ('TKT-'+String(reg.event_id||'').toUpperCase().padStart(3,'0')+'-'+new Date().getFullYear()+'-'+String(reg.id||i+1).padStart(4,'0'));
+      const img = getImg(reg, i);
+      const date = reg.event_date || reg.date;
+      const title = reg.event_title || reg.title || 'Event';
+      const venue = reg.venue || 'MMCOE Campus';
+      const qr = reg.qr_code || '';
+      // encode for onclick
+      const enc = encodeURIComponent(JSON.stringify({title,date,tid,qr}));
+      return `
+      <div class="ticket">
+        <img class="ticket-img" src="${img}" alt="${title}" onerror="this.src='${IMGS[0]}'"/>
+        <div class="ticket-info">
+          <div class="ticket-title">${title}</div>
+          <div class="ticket-meta">${fmtDate(date)} · ${venue}</div>
+          <div class="ticket-id">Ticket ID: ${tid}</div>
+          <div class="ticket-btns">
+            <button class="btn btn-ghost btn-sm" onclick='openTicketEnc("${enc}")'>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Ticket
+            </button>
+            <a class="btn btn-ghost btn-sm" href="event-details.html?id=${reg.event_id||reg.id}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Event Details
+            </a>
+          </div>
+        </div>
+        <span class="chip chip-confirmed" style="flex-shrink:0">Confirmed</span>
+        <div class="ticket-qr">
+          ${qr ? `<img src="${qr}" alt="QR"/>` : `<div style="width:75px;height:75px;background:#f3f4f6;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:0.62rem;color:var(--muted);text-align:center">QR<br/>Code</div>`}
+          <div class="ticket-qr-lbl">Show at entrance</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('ticketList').innerHTML = `<div class="empty"><p>Could not load registrations.<br/><small style="color:var(--light)">${e.message}</small></p></div>`;
+  }
+}
+
+function openTicketEnc(enc) {
+  const {title,date,tid,qr} = JSON.parse(decodeURIComponent(enc));
+  openTicket(title,date,tid,qr);
+}
+
+load();
+</script>
+</body>
+</html>

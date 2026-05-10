@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Login — MMCOE Event Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-logo">
+        <svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="3">
+          <path d="M24 4L6 14v10c0 11 8 20 18 22 10-2 18-11 18-22V14L24 4z"/>
+          <path d="M18 24l4 4 8-8"/>
+        </svg>
+      </div>
+      <div class="login-title">MMCOE Event Management Portal</div>
+      <div class="login-sub">Karvenagar, Pune</div>
+    </div>
+
+    <div id="loginSec">
+      <div class="err-box" id="lErr"></div>
+      <div class="fg">
+        <label class="fl">Email</label>
+        <input class="fi" id="lEmail" type="email" placeholder="yourname@mmcoe.edu.in" onkeydown="if(event.key==='Enter')login()"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Password</label>
+        <input class="fi" id="lPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Login as</label>
+        <div class="role-row">
+          <label class="role-opt"><input type="radio" name="role" value="student" checked/> Student</label>
+          <label class="role-opt"><input type="radio" name="role" value="host"/> Host</label>
+          <label class="role-opt"><input type="radio" name="role" value="admin"/> Admin</label>
+        </div>
+      </div>
+      <button class="btn-full" id="lBtn" onclick="login()">Login</button>
+      <div class="login-divider">Don't have an account? <a onclick="showReg()">Register here</a></div>
+    </div>
+
+    <div id="regSec" style="display:none">
+      <div class="err-box" id="rErr"></div>
+      <div class="ok-box" id="rOk"></div>
+      <div class="fg"><label class="fl">Full Name</label><input class="fi" id="rName" type="text" placeholder="Your full name"/></div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="rEmail" type="email" placeholder="you@mmcoe.edu.in"/></div>
+      <div class="reg-grid">
+        <div class="fg"><label class="fl">Password</label><input class="fi" id="rPass" type="password" placeholder="Min 6 chars"/></div>
+        <div class="fg"><label class="fl">Confirm</label><input class="fi" id="rConf" type="password" placeholder="Repeat"/></div>
+      </div>
+      <div class="fg">
+        <label class="fl">Register as</label>
+        <select class="fs" id="rRole">
+          <option value="student">Student</option>
+          <option value="host">Event Host</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Department</label>
+        <select class="fs" id="rDept">
+          <option value="">Select department</option>
+          <option>Computer Engineering</option>
+          <option>Information Technology</option>
+          <option>Electronics &amp; Telecommunication</option>
+          <option>Mechanical Engineering</option>
+          <option>Civil Engineering</option>
+          <option>AIDS</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Year</label>
+        <select class="fs" id="rYear">
+          <option value="">Select year</option>
+          <option value="FE">FE</option><option value="SE">SE</option>
+          <option value="TE">TE</option><option value="BE">BE</option>
+        </select>
+      </div>
+      <button class="btn-full" id="rBtn" onclick="register()">Create Account</button>
+      <div class="login-divider">Already have an account? <a onclick="showLogin()">Sign in</a></div>
+    </div>
+  </div>
+</div>
+<script src="../js/auth.js"></script>
+</body>
+</html>

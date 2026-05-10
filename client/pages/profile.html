@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Profile — MMCOE Event Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div id="_nav"></div>
+<div id="_notif"></div>
+
+<div class="app">
+  <div id="_side"></div>
+  <main class="main">
+    <div class="ph"><div><h1>My Profile</h1><p>Manage your account details.</p></div></div>
+
+    <div style="display:grid;grid-template-columns:280px 1fr;gap:1.25rem;align-items:start">
+
+      <div class="card" style="padding:1.5rem;text-align:center">
+        <div class="profile-avatar-big" id="profileAvatarBig" style="margin:0 auto 1rem">?</div>
+        <div style="font-size:1rem;font-weight:700;margin-bottom:2px" id="profileNameDisplay">—</div>
+        <div style="font-size:0.8rem;color:var(--muted)" id="profileEmailDisplay">—</div>
+        <div style="margin-top:0.75rem;display:flex;flex-direction:column;gap:0.5rem">
+          <div id="profileDeptDisplay" style="font-size:0.78rem;background:#f0f4fb;color:var(--navy);padding:4px 10px;border-radius:99px;display:inline-block"></div>
+          <div id="profileYearDisplay" style="font-size:0.78rem;color:var(--muted)"></div>
+        </div>
+        
+        <div id="studentStats" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border); display:none;">
+          <div style="display:flex;justify-content:space-around">
+            <div style="text-align:center"><div style="font-size:1.2rem;font-weight:800;color:var(--navy)" id="pStatRegs">—</div><div style="font-size:0.7rem;color:var(--muted)">Registered</div></div>
+            <div style="text-align:center"><div style="font-size:1.2rem;font-weight:800;color:var(--navy)" id="pStatCerts">—</div><div style="font-size:0.7rem;color:var(--muted)">Certificates</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:1.25rem">
+          <div class="card-hd"><h2>Personal Information</h2></div>
+          <div class="card-bd">
+            <div class="err-box" id="profErr"></div>
+            <div class="ok-box" id="profOk"></div>
+            <div class="fg2">
+              <div class="fg"><label class="fl">Full Name</label><input class="fi" id="profName" type="text" placeholder="Your full name"/></div>
+              <div class="fg"><label class="fl">Phone Number <span class="opt">(optional)</span></label><input class="fi" id="profPhone" type="tel" placeholder="+91 XXXXX XXXXX"/></div>
+            </div>
+            <div class="fg2">
+              <div class="fg"><label class="fl">Department</label>
+                <select class="fs" id="profDept">
+                  <option value="">Select department</option>
+                  <option>Computer Engineering</option>
+                  <option>Information Technology</option>
+                  <option>Electronics &amp; Telecommunication</option>
+                  <option>Mechanical Engineering</option>
+                  <option>Civil Engineering</option>
+                  <option>AIDS</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div class="fg"><label class="fl">Year</label>
+                <select class="fs" id="profYear">
+                  <option value="">Select year</option>
+                  <option value="FE">FE</option><option value="SE">SE</option>
+                  <option value="TE">TE</option><option value="BE">BE</option>
+                </select>
+              </div>
+            </div>
+            <div class="fg"><label class="fl">Bio <span class="opt">(optional)</span></label><textarea class="ft" id="profBio" placeholder="A short bio about yourself…" style="min-height:70px"></textarea></div>
+            <button class="btn btn-primary" id="profSaveBtn" onclick="saveProfile()">Save Changes</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hd"><h2>Change Password</h2></div>
+          <div class="card-bd">
+            <div class="err-box" id="passErr"></div>
+            <div class="ok-box" id="passOk"></div>
+            <div class="fg"><label class="fl">Current Password</label><input class="fi" id="passOld" type="password" placeholder="••••••••"/></div>
+            <div class="fg2">
+              <div class="fg"><label class="fl">New Password</label><input class="fi" id="passNew" type="password" placeholder="Min 6 chars"/></div>
+              <div class="fg"><label class="fl">Confirm New Password</label><input class="fi" id="passConf" type="password" placeholder="Repeat"/></div>
+            </div>
+            <button class="btn btn-primary" id="passSaveBtn" onclick="changePassword()">Update Password</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="../js/auth.js"></script>
+<script src="../js/shared.js"></script>
+<script>
+const user = requireAuth();
+if (!user) throw '';
+
+// DYNAMIC SIDEBAR AND TOPNAV BASED ON ROLE
+document.getElementById('_nav').innerHTML = renderTopnav('profile');
+
+const sideEl = document.getElementById('_side');
+if (user.role === 'admin') {
+    sideEl.innerHTML = renderAdminSidebar('profile');
+} else if (user.role === 'host') {
+    sideEl.innerHTML = renderHostSidebar('profile');
+} else {
+    sideEl.innerHTML = renderStudentSidebar('profile');
+    // Only show stats for students
+    document.getElementById('studentStats').style.display = 'block';
+    loadStats();
+}
+
+document.getElementById('_notif').innerHTML = renderNotifDrawer();
+
+function initProfileUI(u) {
+  const initials = u.name ? u.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
+  document.getElementById('profileAvatarBig').textContent = initials;
+  document.getElementById('profileNameDisplay').textContent = u.name || '—';
+  document.getElementById('profileEmailDisplay').textContent = u.email || '';
+  document.getElementById('profileDeptDisplay').textContent = u.department || '';
+  document.getElementById('profileYearDisplay').textContent = u.year || '';
+  document.getElementById('profName').value = u.name || '';
+  document.getElementById('profPhone').value = u.phone || '';
+  document.getElementById('profBio').value = u.bio || '';
+  if (u.department) document.getElementById('profDept').value = u.department;
+  if (u.year) document.getElementById('profYear').value = u.year;
+}
+
+async function loadStats() {
+  try {
+    const [rR, rC] = await Promise.all([
+      fetch(API + '/my-registrations', { headers: authHeaders() }),
+      fetch(API + '/certificates', { headers: authHeaders() })
+    ]);
+    const regs = await rR.json();
+    const certs = await rC.json();
+    document.getElementById('pStatRegs').textContent = Array.isArray(regs) ? regs.length : '0';
+    document.getElementById('pStatCerts').textContent = Array.isArray(certs) ? certs.length : '0';
+  } catch (e) {}
+}
+
+async function saveProfile() {
+  const name = document.getElementById('profName').value.trim();
+  const department = document.getElementById('profDept').value;
+  const year = document.getElementById('profYear').value;
+  const phone = document.getElementById('profPhone').value.trim();
+  const bio = document.getElementById('profBio').value.trim();
+  const err = document.getElementById('profErr');
+  const ok = document.getElementById('profOk');
+  err.style.display = 'none'; ok.style.display = 'none';
+  if (!name) { err.textContent = 'Name is required.'; err.style.display = 'block'; return; }
+  const btn = document.getElementById('profSaveBtn'); btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const r = await fetch(API + '/profile', {
+      method: 'PUT', headers: authHeaders(),
+      body: JSON.stringify({ name, department, year, phone, bio })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.message || 'Failed to save.');
+    const updated = { ...user, name, department, year, phone, bio };
+    localStorage.setItem('user', JSON.stringify(updated));
+    ok.textContent = ' Profile updated successfully!'; ok.style.display = 'block';
+    initProfileUI(updated);
+    setTimeout(() => { ok.style.display = 'none'; }, 3000);
+  } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = 'Save Changes'; }
+}
+
+async function changePassword() {
+  const oldPass = document.getElementById('passOld').value;
+  const newPass = document.getElementById('passNew').value;
+  const confPass = document.getElementById('passConf').value;
+  const err = document.getElementById('passErr');
+  const ok = document.getElementById('passOk');
+  err.style.display = 'none'; ok.style.display = 'none';
+  if (!oldPass || !newPass) { err.textContent = 'All password fields are required.'; err.style.display = 'block'; return; }
+  if (newPass !== confPass) { err.textContent = 'New passwords do not match.'; err.style.display = 'block'; return; }
+  if (newPass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; err.style.display = 'block'; return; }
+  const btn = document.getElementById('passSaveBtn'); btn.disabled = true; btn.textContent = 'Updating…';
+  try {
+    const r = await fetch(API + '/profile/password', {
+      method: 'PUT', headers: authHeaders(),
+      body: JSON.stringify({ current_password: oldPass, new_password: newPass })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.message || 'Failed.');
+    ok.textContent = ' Password updated successfully!'; ok.style.display = 'block';
+    ['passOld', 'passNew', 'passConf'].forEach(id => document.getElementById(id).value = '');
+    setTimeout(() => { ok.style.display = 'none'; }, 3000);
+  } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = 'Update Password'; }
+}
+
+initProfileUI(user);
+fetchAndRenderNotifs();
+</script>
+</body>
+</html>

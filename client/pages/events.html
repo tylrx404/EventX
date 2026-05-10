@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Events — MMCOE Event Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div id="_nav"></div>
+<div id="_notif"></div>
+
+<div style="padding-top:var(--nav-h)">
+<div class="main" style="margin-left:0;padding-top:0">
+
+<div class="hero-banner">
+  <h1>College Events</h1>
+  <p>Discover, register and participate in events at MMCOE</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><strong id="hEvt">—</strong><span>Events</span></div>
+    <div class="hero-stat"><strong id="hReg">—</strong><span>Registrations</span></div>
+    <div class="hero-stat"><strong id="hCat">—</strong><span>Categories</span></div>
+  </div>
+</div>
+
+<div style="padding:1.5rem 2rem 0">
+<div class="filter-row">
+  <div class="search-wrap" style="max-width:300px;flex:1">
+    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+    <input class="search-input" id="q" type="text" placeholder="Search events, venue, category…" oninput="render()"/>
+  </div>
+  <select class="fs" id="sortSel" onchange="render()" style="width:auto;padding:7px 11px">
+    <option value="upcoming">Upcoming first</option>
+    <option value="popular">Most popular</option>
+    <option value="name">Name A–Z</option>
+  </select>
+</div>
+
+<div class="cat-tabs" id="catTabs" style="margin-bottom:1rem">
+  <button class="cat-tab active" onclick="setCat('All',this)">All</button>
+</div>
+
+<div class="result-count" id="rc"></div>
+
+<div class="ev-grid" id="grid">
+  <div style="grid-column:1/-1;padding:3rem;text-align:center;color:var(--muted)">Loading events…</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script src="../js/auth.js"></script>
+<script src="../js/shared.js"></script>
+<script>
+document.getElementById("_nav").innerHTML = renderTopnav("events");
+document.getElementById("_notif").innerHTML = renderNotifDrawer();
+
+const user = getUser();
+
+let all = [];
+let cat = "All";
+
+function setCat(c, el) {
+  cat = c;
+  document.querySelectorAll(".cat-tab").forEach(t => t.classList.remove("active"));
+  el?.classList.add("active");
+  render();
+}
+
+function badgeHtml(e) {
+  if (e.registered) return '<span class="ev-badge badge-reg">Registered</span>';
+  const now = new Date();
+  if (new Date(e.date) < now) return '<span class="ev-badge badge-closed">Past</span>';
+  if (e.registration_deadline && new Date(e.registration_deadline) < now) return '<span class="ev-badge badge-closed">Closed</span>';
+  if (e.max_participants > 0 && e.registered_count >= e.max_participants) return '<span class="ev-badge badge-closed">Full</span>';
+  return '<span class="ev-badge badge-upcoming">Upcoming</span>';
+}
+
+function render() {
+  const q = document.getElementById("q").value.toLowerCase();
+  const sort = document.getElementById("sortSel").value;
+  let list = all;
+  if (cat !== "All") list = list.filter(e => e.category === cat);
+  if (q) list = list.filter(e => (e.title + e.venue + e.category + (e.description || '')).toLowerCase().includes(q));
+  if (sort === "upcoming") list = [...list].sort((a, b) => new Date(a.date) - new Date(b.date));
+  else if (sort === "popular") list = [...list].sort((a, b) => (b.registered_count || 0) - (a.registered_count || 0));
+  else if (sort === "name") list = [...list].sort((a, b) => a.title.localeCompare(b.title));
+
+  document.getElementById("rc").textContent = "Showing " + list.length + " event" + (list.length !== 1 ? "s" : "");
+
+  if (!list.length) {
+    document.getElementById("grid").innerHTML = '<div style="grid-column:1/-1;padding:3rem;text-align:center;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:0.5rem"></div><div style="font-weight:600;margin-bottom:4px">No events found</div><div style="font-size:0.82rem">Try a different search or category</div></div>';
+    return;
+  }
+
+  document.getElementById("grid").innerHTML = list.map((e, i) => {
+    const fillPct = e.max_participants > 0 ? Math.min(100, Math.round((e.registered_count || 0) / e.max_participants * 100)) : null;
+    return `
+    <a class="ev-card" href="event-details.html?id=${e.id}">
+      <div class="ev-img-wrap">
+        <img class="ev-img" src="${getImg(e, i)}" alt="${e.title}" loading="lazy" onerror="this.src='${IMGS[0]}'"/>
+        ${badgeHtml(e)}
+      </div>
+      <div class="ev-body">
+        <div class="ev-cat ${CAT_CLASS[e.category] || 'chip-other'}">${e.category || 'Event'}</div>
+        <div class="ev-title">${e.title}</div>
+        <div class="ev-meta"> ${fmtDate(e.date)}</div>
+        <div class="ev-meta"> ${e.venue || 'TBD'}</div>
+        ${e.description ? `<div class="ev-desc">${e.description}</div>` : ''}
+      </div>
+      ${fillPct !== null ? `
+      <div class="ev-footer">
+        <span class="ev-reg-count">${e.registered_count || 0} registered</span>
+        <div class="ev-reg-bar"><div class="ev-reg-bar-fill" style="width:${fillPct}%;background:${fillPct >= 90 ? 'var(--danger)' : fillPct >= 60 ? 'var(--warn)' : 'var(--navy)'}"></div></div>
+        <span class="ev-reg-count">${e.max_participants}</span>
+      </div>` : ''}
+    </a>`;
+  }).join("");
+}
+
+async function load() {
+  try {
+    const r = await fetch(API + "/events", { headers: user ? authHeaders() : {} });
+    all = await r.json();
+    if (!Array.isArray(all)) all = [];
+
+    const totalRegs = all.reduce((s, e) => s + (+e.registered_count || 0), 0);
+    const cats = [...new Set(all.map(e => e.category).filter(Boolean))];
+
+    document.getElementById("hEvt").textContent = all.length;
+    document.getElementById("hReg").textContent = totalRegs;
+    document.getElementById("hCat").textContent = cats.length;
+
+    const tabs = document.getElementById("catTabs");
+    tabs.innerHTML = '<button class="cat-tab active" onclick="setCat(\'All\',this)">All</button>';
+    cats.forEach(c => {
+      const b = document.createElement("button");
+      b.className = "cat-tab"; b.textContent = c;
+      b.onclick = function() { setCat(c, this); };
+      tabs.appendChild(b);
+    });
+
+    render();
+  } catch (e) {
+    document.getElementById("grid").innerHTML = '<div style="grid-column:1/-1;padding:3rem;text-align:center;color:var(--muted)">Could not load events. Is the server running?</div>';
+  }
+}
+
+if (user) fetchAndRenderNotifs();
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QR Scanner — EventX Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/style.css"/>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <style>
+    .page-wrap { max-width:900px; margin:0 auto; padding:2rem 1.5rem 5rem; }
+    .page-header { margin-bottom:2rem; }
+    .page-header h1 { font-size:1.9rem; color:var(--navy); }
+    .page-header p  { color:var(--text-muted); font-size:0.88rem; margin-top:3px; }
+
+    /* Scanner layout */
+    .scanner-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; align-items:start;
+    }
+
+    /* Camera card */
+    .camera-card {
+      background:var(--white); border-radius:var(--radius);
+      border:1px solid var(--border); box-shadow:var(--shadow-sm);
+      overflow:hidden;
+    }
+    .camera-header {
+      background:var(--navy); padding:1rem 1.3rem;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .camera-header h3 { font-family:var(--font); font-size:1rem; color:var(--white); font-weight:700; }
+
+    .video-wrap {
+      position:relative; background:#000;
+      aspect-ratio:1; overflow:hidden;
+    }
+    #qrVideo {
+      width:100%; height:100%; object-fit:cover; display:block;
+    }
+    /* Scanning reticle overlay */
+    .scan-overlay {
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      pointer-events:none;
+    }
+    .scan-box {
+      width:55%; aspect-ratio:1;
+      border:3px solid var(--amber);
+      border-radius:12px;
+      box-shadow:0 0 0 9999px rgba(0,0,0,0.35);
+      animation:scan-pulse 2s infinite;
+    }
+    @keyframes scan-pulse {
+      0%,100% { border-color:var(--amber); box-shadow:0 0 0 9999px rgba(0,0,0,0.35), 0 0 20px rgba(245,166,35,0.3); }
+      50%      { border-color:#fbbf24;     box-shadow:0 0 0 9999px rgba(0,0,0,0.35), 0 0 35px rgba(245,166,35,0.6); }
+    }
+    .scan-line {
+      position:absolute; left:22.5%; right:22.5%;
+      height:2px; background:var(--amber);
+      animation:scan-move 2.5s linear infinite;
+      box-shadow:0 0 8px var(--amber);
+    }
+    @keyframes scan-move {
+      0%   { top:22.5%; }
+      100% { top:77.5%; }
+    }
+    .scan-hint {
+      position:absolute; bottom:12px; left:0; right:0;
+      text-align:center; color:rgba(255,255,255,0.8);
+      font-size:0.75rem; font-family:var(--font);
+    }
+
+    .camera-footer {
+      padding:1rem 1.3rem; display:flex; gap:0.75rem; flex-wrap:wrap;
+    }
+    #canvasEl { display:none; }
+
+    /* Hidden file input for manual upload */
+    #qrFileInput { display:none; }
+
+    /* Result card */
+    .result-card {
+      background:var(--white); border-radius:var(--radius);
+      border:1px solid var(--border); box-shadow:var(--shadow-sm);
+      overflow:hidden;
+    }
+    .result-header {
+      background:var(--navy); padding:1rem 1.3rem;
+    }
+    .result-header h3 { font-family:var(--font); font-size:1rem; color:var(--white); font-weight:700; }
+
+    .result-body { padding:1.4rem; }
+
+    /* States */
+    .state-idle {
+      text-align:center; padding:3rem 1rem;
+      color:var(--text-muted);
+    }
+    .state-idle .idle-icon { font-size:3rem; margin-bottom:0.75rem; }
+    .state-idle p { font-size:0.88rem; line-height:1.6; }
+
+    .state-loading {
+      text-align:center; padding:2.5rem;
+      color:var(--text-muted); font-size:0.88rem;
+    }
+
+    .result-valid {
+      background:#f0fdf4; border:1.5px solid #86efac;
+      border-radius:var(--radius-sm); padding:1.2rem;
+      margin-bottom:1rem;
+    }
+    .result-valid .valid-badge {
+      display:inline-flex; align-items:center; gap:0.4rem;
+      background:#22c55e; color:#fff;
+      padding:4px 12px; border-radius:99px;
+      font-size:0.78rem; font-weight:700; margin-bottom:0.75rem;
+    }
+    .result-invalid {
+      background:#fef2f2; border:1.5px solid #fca5a5;
+      border-radius:var(--radius-sm); padding:1.2rem;
+      margin-bottom:1rem;
+    }
+    .result-invalid .invalid-badge {
+      display:inline-flex; align-items:center; gap:0.4rem;
+      background:var(--danger); color:#fff;
+      padding:4px 12px; border-radius:99px;
+      font-size:0.78rem; font-weight:700; margin-bottom:0.75rem;
+    }
+
+    .info-row {
+      display:flex; gap:0.5rem; align-items:flex-start;
+      font-size:0.83rem; color:var(--text-muted);
+      margin-bottom:0.45rem;
+    }
+    .info-row strong { color:var(--text-main); min-width:110px; display:inline-block; }
+
+    /* Scan history */
+    .history-card {
+      background:var(--white); border-radius:var(--radius);
+      border:1px solid var(--border); box-shadow:var(--shadow-sm);
+      margin-top:1.5rem; grid-column:1/-1;
+    }
+    .history-header {
+      background:var(--navy); padding:1rem 1.3rem;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .history-header h3 { font-family:var(--font); font-size:1rem; color:var(--white); font-weight:700; }
+    .history-list { padding:0.5rem 0; max-height:280px; overflow-y:auto; }
+    .history-item {
+      padding:0.7rem 1.3rem;
+      display:flex; align-items:center; gap:0.8rem;
+      border-bottom:1px solid #f3f4f6;
+      font-size:0.82rem;
+    }
+    .history-item:last-child { border-bottom:none; }
+    .history-dot {
+      width:8px; height:8px; border-radius:50%; flex-shrink:0;
+    }
+    .dot-ok  { background:var(--success); }
+    .dot-err { background:var(--danger); }
+    .history-name { font-weight:600; color:var(--text-main); }
+    .history-event { color:var(--text-muted); }
+    .history-time  { color:#9ca3af; font-size:0.73rem; margin-left:auto; white-space:nowrap; }
+
+    .history-empty {
+      text-align:center; padding:2rem; color:var(--text-muted); font-size:0.85rem;
+    }
+
+    @media(max-width:700px){
+      .scanner-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<nav class="topnav">
+  <a class="nav-brand" href="admin-dashboard.html">Event<span>X</span>
+    <span style="font-size:0.6rem;background:rgba(245,166,35,0.2);color:var(--amber);
+                 padding:2px 7px;border-radius:99px;margin-left:6px;vertical-align:middle;
+                 font-weight:700;letter-spacing:.5px;">ADMIN</span>
+  </a>
+  <div class="nav-right">
+    <a class="nav-link" href="admin-dashboard.html">← Dashboard</a>
+    <button class="nav-link always-show" onclick="logout()">Logout</button>
+    <div class="nav-avatar" id="navAvatar">A</div>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-header fade-in">
+    <h1> QR Attendance Scanner</h1>
+    <p>Scan student QR codes to verify event registrations and mark attendance.</p>
+  </div>
+
+  <div class="scanner-grid">
+
+    
+    <div class="camera-card fade-in">
+      <div class="camera-header">
+        <h3> Camera Scanner</h3>
+        <span id="cameraStatus" style="font-size:0.72rem;color:rgba(255,255,255,0.6)">
+          Not started
+        </span>
+      </div>
+
+      <div class="video-wrap">
+        <video id="qrVideo" playsinline autoplay muted></video>
+        <div class="scan-overlay">
+          <div class="scan-box"></div>
+          <div class="scan-line"></div>
+        </div>
+        <div class="scan-hint">Point camera at student QR code</div>
+      </div>
+
+      <canvas id="canvasEl"></canvas>
+
+      <div class="camera-footer">
+        <button class="btn btn-primary" id="btnStart" onclick="startCamera()">
+          ▶ Start Camera
+        </button>
+        <button class="btn btn-ghost" id="btnStop" onclick="stopCamera()" disabled>
+          ⏹ Stop
+        </button>
+        <label class="btn btn-ghost" style="cursor:pointer">
+           Upload QR Image
+          <input type="file" id="qrFileInput" accept="image/*" onchange="scanFromFile(event)"/>
+        </label>
+      </div>
+    </div>
+
+    
+    <div class="result-card fade-in">
+      <div class="result-header">
+        <h3> Scan Result</h3>
+      </div>
+      <div class="result-body" id="resultBody">
+        <div class="state-idle">
+          <div class="idle-icon"></div>
+          <p>Start the camera and point it at a student's QR code to verify their registration.</p>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="history-card fade-in">
+      <div class="history-header">
+        <h3> Scan History</h3>
+        <button class="btn btn-ghost" style="padding:4px 12px;font-size:0.75rem"
+                onclick="clearHistory()">Clear</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="history-empty">No scans yet.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API  = "http://localhost:5000/api";
+const user = JSON.parse(localStorage.getItem("user") || "null");
+if (!user || user.role !== "admin") window.location.href = "login.html";
+document.getElementById("navAvatar").textContent =
+  user.name ? user.name.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2) : "A";
+
+function getAuthHeaders() {
+  return { "Content-Type":"application/json","Authorization":`Bearer ${user.token}` };
+}
+function showToast(msg, type="success") {
+  const t = document.getElementById("toast");
+  t.textContent=msg; t.className=`toast ${type} show`;
+  setTimeout(()=>t.classList.remove("show"), 3200);
+}
+
+/* ════════════════════════════════════════════════
+   CAMERA + QR SCANNING
+   ════════════════════════════════════════════════ */
+let stream      = null;
+let scanInterval = null;
+let lastScanned = "";
+let lastScanTime = 0;
+let scanHistory = [];
+
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode:"environment", width:{ideal:640}, height:{ideal:640} }
+    });
+    document.getElementById("qrVideo").srcObject = stream;
+    document.getElementById("cameraStatus").textContent = " Active";
+    document.getElementById("btnStart").disabled = true;
+    document.getElementById("btnStop").disabled  = false;
+
+    scanInterval = setInterval(scanFrame, 250);
+  } catch(err) {
+    showToast(" Camera access denied. Please allow camera permissions.", "error");
+    document.getElementById("cameraStatus").textContent = " Permission denied";
+  }
+}
+
+function stopCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  document.getElementById("qrVideo").srcObject = null;
+  document.getElementById("cameraStatus").textContent = "Stopped";
+  document.getElementById("btnStart").disabled = false;
+  document.getElementById("btnStop").disabled  = true;
+}
+
+function scanFrame() {
+  const video  = document.getElementById("qrVideo");
+  const canvas = document.getElementById("canvasEl");
+  if (!video.readyState || video.readyState < 2) return;
+
+  const w = video.videoWidth, h = video.videoHeight;
+  if (!w || !h) return;
+
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, w, h);
+
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const code      = jsQR(imageData.data, imageData.width, imageData.height, {
+    inversionAttempts: "dontInvert"
+  });
+
+  if (code) {
+    const now = Date.now();
+    /* Debounce: don't re-scan same code within 3 seconds */
+    if (code.data === lastScanned && now - lastScanTime < 3000) return;
+    lastScanned  = code.data;
+    lastScanTime = now;
+    verifyQR(code.data);
+  }
+}
+
+/* ── Upload QR image ── */
+function scanFromFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = () => {
+    const canvas = document.getElementById("canvasEl");
+    canvas.width = img.width; canvas.height = img.height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, img.width, img.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    URL.revokeObjectURL(url);
+    if (code) verifyQR(code.data);
+    else showToast(" No QR code found in image.", "error");
+  };
+  img.src = url;
+}
+
+/* ════════════════════════════════════════════════
+   VERIFY QR WITH BACKEND
+   ════════════════════════════════════════════════ */
+async function verifyQR(rawData) {
+  document.getElementById("resultBody").innerHTML =
+    `<div class="state-loading"> Verifying...</div>`;
+
+  try {
+    const res  = await fetch(`${API}/admin/verify-qr`, {
+      method:  "POST",
+      headers: getAuthHeaders(),
+      body:    JSON.stringify({ qr_data: rawData })
+    });
+    const data = await res.json();
+
+    if (data.valid && data.registration) {
+      renderValidResult(data.registration);
+      addHistory(true, data.registration);
+      showToast(` Valid — ${data.registration.name}`, "success");
+    } else {
+      renderInvalidResult(data.message || "Invalid QR code.");
+      addHistory(false, null, data.message);
+      showToast(" " + (data.message || "Invalid QR"), "error");
+    }
+  } catch(err) {
+    renderInvalidResult("Could not connect to server.");
+    showToast(" Server error.", "error");
+  }
+}
+
+/* ── Render valid result ── */
+function renderValidResult(reg) {
+  const eventDate = new Date(reg.event_date).toLocaleDateString("en-IN",{
+    weekday:"short", day:"numeric", month:"short", year:"numeric"
+  });
+  document.getElementById("resultBody").innerHTML = `
+    <div class="result-valid">
+      <div class="valid-badge"> VALID ENTRY PASS</div>
+      <div class="info-row"><strong> Name</strong>${reg.name}</div>
+      <div class="info-row"><strong> Email</strong>${reg.email}</div>
+      <div class="info-row"><strong> Department</strong>${reg.department || "—"}</div>
+      <div class="info-row"><strong> Year</strong>${reg.year || "—"}</div>
+      ${reg.team_name ? `<div class="info-row"><strong> Team</strong>${reg.team_name}</div>` : ""}
+    </div>
+    <div style="background:#f8faff;border-radius:var(--radius-sm);padding:1rem;border:1px solid var(--border)">
+      <div class="info-row"><strong> Event</strong>${reg.event_title}</div>
+      <div class="info-row"><strong> Date</strong>${eventDate}</div>
+      <div class="info-row"><strong> Venue</strong>${reg.venue || "—"}</div>
+      <div class="info-row"><strong> Status</strong>
+        <span style="background:#dcfce7;color:#166534;padding:2px 8px;
+                     border-radius:99px;font-size:0.72rem;font-weight:700">
+          ${reg.status || "registered"}
+        </span>
+      </div>
+    </div>`;
+}
+
+/* ── Render invalid result ── */
+function renderInvalidResult(msg) {
+  document.getElementById("resultBody").innerHTML = `
+    <div class="result-invalid">
+      <div class="invalid-badge"> INVALID QR CODE</div>
+      <p style="font-size:0.85rem;color:#7f1d1d;margin-top:0.25rem">${msg}</p>
+    </div>
+    <p style="font-size:0.82rem;color:var(--text-muted)">
+      This QR code could not be verified. The student may not be registered,
+      or the QR code may be damaged or expired.
+    </p>`;
+}
+
+/* ════════════════════════════════════════════════
+   SCAN HISTORY
+   ════════════════════════════════════════════════ */
+function addHistory(valid, reg, errMsg) {
+  scanHistory.unshift({
+    valid, reg, errMsg,
+    time: new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",second:"2-digit"})
+  });
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById("historyList");
+  if (scanHistory.length === 0) {
+    list.innerHTML = `<div class="history-empty">No scans yet.</div>`;
+    return;
+  }
+  list.innerHTML = scanHistory.map(h => `
+    <div class="history-item">
+      <div class="history-dot ${h.valid ? "dot-ok" : "dot-err"}"></div>
+      <div>
+        <div class="history-name">${h.valid ? h.reg.name : "Invalid scan"}</div>
+        <div class="history-event">
+          ${h.valid ? h.reg.event_title : (h.errMsg || "Unknown error")}
+        </div>
+      </div>
+      <div class="history-time">${h.time}</div>
+    </div>`).join("");
+}
+
+function clearHistory() {
+  scanHistory = [];
+  renderHistory();
+  document.getElementById("resultBody").innerHTML = `
+    <div class="state-idle">
+      <div class="idle-icon"></div>
+      <p>History cleared. Start the camera to scan QR codes.</p>
+    </div>`;
+}
+
+function logout() { localStorage.removeItem("user"); window.location.href="login.html"; }
+</script>
+</body>
+</html>

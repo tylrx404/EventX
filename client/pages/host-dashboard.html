@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Host Panel — MMCOE Event Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/style.css"/>
+<style>
+  /* Extra styling for the report generator to make it stand out */
+  .report-controls { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin-top: 1rem; }
+  .report-card { border-left: 4px solid var(--navy) !important; margin-bottom: 2rem; }
+  .d-none { display: none !important; }
+</style>
+</head>
+<body>
+<div id="_nav"></div>
+<div id="_notif"></div>
+<div class="toast" id="_toast"></div>
+
+<div class="app">
+  <div id="_side"></div>
+  <main class="main">
+
+    <div class="sec on" id="sec-dashboard">
+      <div class="ph"><div><h1>Host Dashboard</h1><p>Manage your events and track participation.</p></div></div>
+      <div class="stats">
+        <div class="stat"><div><div class="stat-num" id="hMyEvents">—</div><div class="stat-lbl">My Events</div></div><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div></div>
+        <div class="stat"><div><div class="stat-num" id="hApproved">—</div><div class="stat-lbl">Approved</div></div><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
+        <div class="stat"><div><div class="stat-num" id="hPending">—</div><div class="stat-lbl">Pending Approval</div></div><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+        <div class="stat"><div><div class="stat-num" id="hTotalRegs">—</div><div class="stat-lbl">Total Registrations</div></div><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><h2>My Events</h2></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Event</th><th>Date</th><th>Registrations</th><th>Approval</th><th>Status</th></tr></thead>
+            <tbody id="hostSumBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-create">
+      <div class="ph"><div><h1>Create Event</h1><p>Submit a new event for admin approval.</p></div></div>
+      <div style="background:#fef9c3;border:1px solid #fde68a;border-radius:var(--r-sm);padding:10px 14px;margin-bottom:1.25rem;font-size:0.82rem;color:#92400e">
+        Your event will be reviewed by the admin before it appears on student dashboards.
+      </div>
+      <div class="card"><div class="card-bd">
+        <div class="fg2">
+          <div class="fg"><label class="fl">Event Name</label><input class="fi" id="hcTitle" type="text" placeholder="e.g. Code Sprint 2026"/></div>
+          <div class="fg"><label class="fl">Category</label><select class="fs" id="hcCat"><option value="">Select</option><option>Technical</option><option>Coding</option><option>Cultural</option><option>Sports</option><option>Workshop</option><option>Quiz</option><option>Competitions</option><option>Other</option></select></div>
+        </div>
+        <div class="fg"><label class="fl">Description</label><textarea class="ft" id="hcDesc" placeholder="Describe the event, rules, eligibility…"></textarea></div>
+        <div class="fg3">
+          <div class="fg"><label class="fl">Event Date</label><input class="fi" id="hcDate" type="datetime-local"/></div>
+          <div class="fg"><label class="fl">Registration Deadline</label><input class="fi" id="hcDeadline" type="datetime-local"/></div>
+          <div class="fg"><label class="fl">Venue</label><input class="fi" id="hcVenue" type="text" placeholder="e.g. MMCOE Auditorium"/></div>
+        </div>
+        <div class="fg2">
+          <div class="fg"><label class="fl">Max Participants</label><input class="fi" id="hcMax" type="number" min="1" placeholder="e.g. 200"/></div>
+          <div class="fg"><label class="fl">Prize Pool <span class="opt">(optional)</span></label><input class="fi" id="hcPrize" type="text" placeholder="e.g. ₹10,000"/></div>
+        </div>
+        <div class="fg">
+          <label class="fl">Poster Image</label>
+          <div style="display:flex;gap:0.75rem;align-items:flex-start;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <input class="fi" id="hcPosterUrl" type="url" placeholder="Paste image URL…" oninput="previewHostPoster()"/>
+              <div style="text-align:center;color:var(--muted);font-size:0.75rem;margin:6px 0">or</div>
+              <input type="file" id="hcPosterFile" accept="image/*" class="fi" style="padding:5px" onchange="handleHostPosterFile(this)"/>
+            </div>
+            <div id="hostPosterPreview" style="display:none;width:100px;height:80px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);flex-shrink:0">
+              <img id="hostPosterImg" src="" style="width:100%;height:100%;object-fit:cover"/>
+            </div>
+          </div>
+        </div>
+        <div style="margin-bottom:1rem">
+          <div style="font-size:0.75rem;font-weight:600;color:var(--text);margin-bottom:8px">Event Timeline</div>
+          <div id="hostTimelineBuilder" style="display:flex;flex-direction:column;gap:6px"></div>
+          <button onclick="addHostStep()" style="margin-top:8px;width:100%;padding:7px;border:2px dashed var(--border);border-radius:var(--r-sm);background:none;color:var(--muted);font-size:0.8rem;cursor:pointer">+ Add Stage</button>
+        </div>
+        <button class="btn btn-primary" id="hcBtn" onclick="hostCreateEvent()">Submit for Approval</button>
+      </div></div>
+    </div>
+
+    <div class="sec" id="sec-myevents">
+      <div class="ph"><div><h1>My Events</h1><p>View and manage your submitted events.</p></div></div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Event</th><th>Date</th><th>Registrations</th><th>Approval</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="hostManBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-participants">
+      <div class="ph"><div><h1>Participants</h1><p>Students registered for your events.</p></div></div>
+      <div class="fg" style="margin-bottom:1rem;max-width:240px">
+        <select class="fs" id="hostPartEventFilter" onchange="loadHostParticipants()">
+          <option value="">Select Event</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Student</th><th>Email</th><th>Department</th><th>Score</th><th>Position</th><th>Actions</th></tr></thead>
+            <tbody id="hostPartBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">Select an event above</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-analytics">
+      <div class="ph"><div><h1>Analytics</h1><p>Performance across your events.</p></div></div>
+      
+      <div class="card report-card">
+        <div class="card-hd">
+          <div style="display:flex; justify-content: space-between; align-items: center; width:100%">
+            <h2>Departmental Report Generator</h2>
+            <span class="chip chip-workshop">Excel Export</span>
+          </div>
+        </div>
+        <div class="card-bd">
+          <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 1rem;">
+            Generate summarized event data (Registrations, Attendance, and Prize distribution) for faculty review.
+          </p>
+          <div class="report-controls">
+            <div class="fg" style="flex:1; min-width: 200px; margin:0">
+              <label class="fl">Time Period</label>
+              <select class="fs" id="reportPeriod" onchange="toggleCustomDates()">
+                <option value="month">Last 30 Days</option>
+                <option value="6months">Last 6 Months</option>
+                <option value="year">Full Academic Year</option>
+                <option value="custom">Custom Range</option>
+              </select>
+            </div>
+            
+            <div id="customDateRange" class="d-none" style="display:flex; gap:0.5rem; flex:2;">
+               <div class="fg" style="flex:1; margin:0">
+                 <label class="fl">From</label>
+                 <input type="date" id="reportStart" class="fi">
+               </div>
+               <div class="fg" style="flex:1; margin:0">
+                 <label class="fl">To</label>
+                 <input type="date" id="reportEnd" class="fi">
+               </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="handleReportDownload()" style="height: 38px; display:flex; align-items:center; gap:8px">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Download CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="chart-card" style="grid-column:1/-1">
+          <h3>Event Participation</h3>
+          <div class="chart-wrap"><canvas id="hostChartParticipation"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Category Distribution</h3>
+          <div class="chart-wrap"><canvas id="hostChartCategory"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Registration Timeline</h3>
+          <div class="chart-wrap"><canvas id="hostChartTimeline"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Departmental Split</h3>
+          <div class="chart-wrap"><canvas id="hostChartDept"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Year-wise Participation</h3>
+          <div class="chart-wrap"><canvas id="hostChartYear"></canvas></div>
+        </div>
+        </div>
+
+  </main>
+</div>
+
+<div class="overlay" id="hostEditOverlay">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-hd"><h3>Edit Event</h3><button class="modal-close" onclick="document.getElementById('hostEditOverlay').classList.remove('open')"></button></div>
+    <div class="modal-bd" style="max-height:70vh;overflow-y:auto">
+      <input type="hidden" id="heId"/>
+      <div class="fg"><label class="fl">Event Title</label><input class="fi" id="heTitle" type="text"/></div>
+      <div class="fg"><label class="fl">Description</label><textarea class="ft" id="heDesc"></textarea></div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Date</label><input class="fi" id="heDate" type="datetime-local"/></div>
+        <div class="fg"><label class="fl">Venue</label><input class="fi" id="heVenue" type="text"/></div>
+      </div>
+      <div class="fg"><label class="fl">Max Participants</label><input class="fi" id="heMax" type="number"/></div>
+      <div style="margin-bottom:1rem">
+        <div style="font-size:0.75rem;font-weight:600;color:var(--text);margin-bottom:8px">Timeline Stages</div>
+        <div id="heTimelineBuilder" style="display:flex;flex-direction:column;gap:6px"></div>
+        <button onclick="addHeStep()" style="margin-top:8px;width:100%;padding:7px;border:2px dashed var(--border);border-radius:var(--r-sm);background:none;color:var(--muted);font-size:0.8rem;cursor:pointer">+ Add Stage</button>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="document.getElementById('hostEditOverlay').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveHostEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="hostScoreOverlay">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-hd"><h3>Update Score</h3><button class="modal-close" onclick="document.getElementById('hostScoreOverlay').classList.remove('open')"></button></div>
+    <div class="modal-bd">
+      <input type="hidden" id="hScoreRegId"/>
+      <div class="fg"><label class="fl">Score</label><input class="fi" id="hScoreVal" type="number" min="0" placeholder="e.g. 85"/></div>
+      <div class="fg"><label class="fl">Position <span class="opt">(optional)</span></label><input class="fi" id="hScorePos" type="text" placeholder="e.g. 1st Place"/></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="document.getElementById('hostScoreOverlay').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveHostScore()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/shared.js"></script>
+<script>
+const user = requireAuth('host');
+if (!user) throw '';
+
+document.getElementById('_nav').innerHTML = renderTopnav('dashboard');
+document.getElementById('_side').innerHTML = renderHostSidebar('dashboard');
+document.getElementById('_notif').innerHTML = renderNotifDrawer();
+
+let hostEvents = [], heSteps = [], hostSteps = [];
+let _hCharts = {};
+
+// ... (Existing Functions for Dashboard, Manage, Participants remain the same) ...
+
+const defaultHostSteps = () => [
+  { label: 'Registration Opens', date: '', done: false },
+  { label: 'Registration Deadline', date: '', done: false },
+  { label: 'Event Day', date: '', done: false }
+];
+
+window.showSec = function(name, el) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.s-link').forEach(l => l.classList.remove('active'));
+  const sec = document.getElementById('sec-' + name);
+  if (sec) sec.classList.add('on');
+  el?.classList.add('active');
+  if (name === 'dashboard') loadHostDashboard();
+  else if (name === 'myevents') loadHostManage();
+  else if (name === 'analytics') loadHostAnalytics();
+  else if (name === 'participants') initHostParticipants();
+};
+
+/* --- NEW REPORTING FUNCTIONS --- */
+
+function toggleCustomDates() {
+    const period = document.getElementById('reportPeriod').value;
+    const customRange = document.getElementById('customDateRange');
+    if (period === 'custom') {
+        customRange.classList.remove('d-none');
+    } else {
+        customRange.classList.add('d-none');
+    }
+}
+
+async function handleReportDownload() {
+    const period = document.getElementById('reportPeriod').value;
+    const start = document.getElementById('reportStart').value;
+    const end = document.getElementById('reportEnd').value;
+    
+    let url = `${API}/host/reports/export?period=${period}`;
+    
+    if (period === 'custom') {
+        if (!start || !end) {
+            toast("Please select both start and end dates", "err");
+            return;
+        }
+        url += `&start=${start}&end=${end}`;
+    }
+
+    try {
+        const response = await fetch(url, { headers: authHeaders() });
+        if (!response.ok) throw new Error("Report generation failed");
+        
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = `MMCOE_Event_Report_${period}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        toast("Report downloaded successfully!", "ok");
+    } catch (err) {
+        console.error(err);
+        toast("Failed to generate report", "err");
+    }
+}
+
+/* --- (Rest of your existing functions: loadHostDashboard, hostCreateEvent, etc.) --- */
+
+async function loadHostDashboard() {
+  try {
+    const r = await fetch(API + '/host/stats', { headers: authHeaders() });
+    const d = await r.json();
+    document.getElementById('hMyEvents').textContent = d.my_events || 0;
+    document.getElementById('hApproved').textContent = d.approved || 0;
+    document.getElementById('hPending').textContent = d.pending || 0;
+    document.getElementById('hTotalRegs').textContent = d.total_registrations || 0;
+    const evts = d.events || [];
+    const tb = document.getElementById('hostSumBody');
+    if (!evts.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">No events yet. Go to Create Event to get started.</td></tr>'; return; }
+    tb.innerHTML = evts.map(e => {
+      const apChip = {
+        approved: '<span class="chip chip-confirmed">Approved</span>',
+        pending: '<span class="chip chip-pending">Pending</span>',
+        rejected: '<span class="chip chip-rejected">Rejected</span>'
+      }[e.approval_status] || '<span class="chip chip-pending">Pending</span>';
+      return `<tr>
+        <td style="font-weight:600">${e.title}</td>
+        <td>${fmtDate(e.date)}</td>
+        <td>${e.registered_count || 0}</td>
+        <td>${apChip}</td>
+        <td><span class="chip ${e.status === 'registration_open' ? 'chip-confirmed' : 'chip-pending'}">${e.status?.replace(/_/g, ' ') || 'draft'}</span></td>
+      </tr>`;
+    }).join('');
+  } catch (e) {}
+}
+
+async function loadHostManage() {
+  try {
+    const r = await fetch(API + '/host/events', { headers: authHeaders() });
+    hostEvents = await r.json();
+    if (!Array.isArray(hostEvents)) hostEvents = [];
+    const tb = document.getElementById('hostManBody');
+    if (!hostEvents.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">No events found</td></tr>'; return; }
+    tb.innerHTML = hostEvents.map(e => {
+      const apChip = {
+        approved: '<span class="chip chip-confirmed">Approved</span>',
+        pending: '<span class="chip chip-pending">Pending</span>',
+        rejected: '<span class="chip chip-rejected">Rejected</span>'
+      }[e.approval_status] || '<span class="chip chip-pending">Pending</span>';
+      return `<tr>
+        <td style="font-weight:600">${e.title}</td>
+        <td>${fmtDate(e.date)}</td>
+        <td>${e.registered_count || 0}</td>
+        <td>${apChip}</td>
+        <td><span class="chip ${e.status === 'registration_open' ? 'chip-confirmed' : 'chip-pending'}">${e.status?.replace(/_/g, ' ') || 'draft'}</span></td>
+        <td><button class="btn-edit" onclick="openHostEdit(${e.id})">Edit</button></td>
+      </tr>`;
+    }).join('');
+  } catch (e) {}
+}
+
+async function initHostParticipants() {
+  try {
+    const r = await fetch(API + '/host/events', { headers: authHeaders() });
+    hostEvents = await r.json();
+    if (!Array.isArray(hostEvents)) hostEvents = [];
+    const sel = document.getElementById('hostPartEventFilter');
+    sel.innerHTML = '<option value="">Select Event</option>' + hostEvents.map(e => `<option value="${e.id}">${e.title}</option>`).join('');
+  } catch (e) {}
+}
+
+async function loadHostParticipants() {
+  const eventId = document.getElementById('hostPartEventFilter').value;
+  const tb = document.getElementById('hostPartBody');
+  if (!eventId) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">Select an event above</td></tr>'; return; }
+  try {
+    const r = await fetch(API + '/host/events/' + eventId + '/participants', { headers: authHeaders() });
+    const parts = await r.json();
+    if (!Array.isArray(parts) || !parts.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">No participants yet</td></tr>'; return; }
+    tb.innerHTML = parts.map(p => `<tr>
+      <td style="font-weight:600">${p.name}</td>
+      <td>${p.email}</td>
+      <td>${p.department || '—'}</td>
+      <td style="font-weight:600;color:var(--navy)">${p.score != null ? p.score : '—'}</td>
+      <td>${p.position || '—'}</td>
+      <td><button class="btn-edit" onclick="openHostScore(${p.registration_id || p.id}, '${p.score ?? ''}', '${p.position || ''}')">Score</button></td>
+    </tr>`).join('');
+  } catch (e) {}
+}
+
+function openHostScore(regId, score, pos) {
+  document.getElementById('hScoreRegId').value = regId;
+  document.getElementById('hScoreVal').value = score;
+  document.getElementById('hScorePos').value = pos;
+  document.getElementById('hostScoreOverlay').classList.add('open');
+}
+
+async function saveHostScore() {
+  const id = document.getElementById('hScoreRegId').value;
+  const score = document.getElementById('hScoreVal').value;
+  const pos = document.getElementById('hScorePos').value.trim();
+  try {
+    const r = await fetch(API + '/host/registrations/' + id + '/score', {
+      method: 'PUT', headers: authHeaders(),
+      body: JSON.stringify({ score: parseInt(score) || null, position: pos || null })
+    });
+    if (!r.ok) throw new Error('Failed');
+    toast(' Score updated!');
+    document.getElementById('hostScoreOverlay').classList.remove('open');
+    loadHostParticipants();
+  } catch (e) { toast(' Failed.', 'err'); }
+}
+
+function previewHostPoster() {
+  const url = document.getElementById('hcPosterUrl').value.trim();
+  const wrap = document.getElementById('hostPosterPreview');
+  if (url) { document.getElementById('hostPosterImg').src = url; wrap.style.display = 'block'; }
+  else wrap.style.display = 'none';
+}
+
+function handleHostPosterFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('hostPosterImg').src = e.target.result;
+    document.getElementById('hostPosterPreview').style.display = 'block';
+    document.getElementById('hcPosterUrl').value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+hostSteps = defaultHostSteps();
+renderHostTimeline();
+
+function renderHostTimeline() {
+  const el = document.getElementById('hostTimelineBuilder');
+  el.innerHTML = hostSteps.map((s, i) => stepRowHtml(s, i, 'hostSteps')).join('');
+}
+
+function addHostStep() { hostSteps.push({ label: '', date: '', done: false }); renderHostTimeline(); }
+
+function stepRowHtml(s, i, arr) {
+  return `<div style="display:flex;gap:6px;align-items:center;background:#f8faff;border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 10px">
+    <div style="width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">${i + 1}</div>
+    <input type="text" value="${s.label || ''}" placeholder="Stage name" oninput="${arr}[${i}].label=this.value" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.82rem;font-family:var(--font)"/>
+    <input type="date" value="${s.date || ''}" oninput="${arr}[${i}].date=this.value" style="padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.8rem;font-family:var(--font);width:130px"/>
+    <label style="display:flex;align-items:center;gap:3px;font-size:0.72rem;color:var(--muted);white-space:nowrap">
+      <input type="checkbox" ${s.done ? 'checked' : ''} onchange="${arr}[${i}].done=this.checked" style="accent-color:var(--navy)"/> Done
+    </label>
+    <button onclick="remove${arr.charAt(0).toUpperCase() + arr.slice(1)}Step(${i})" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1rem;padding:2px 4px"></button>
+  </div>`;
+}
+
+function removehostStepsStep(i) { if (hostSteps.length <= 1) return; hostSteps.splice(i, 1); renderHostTimeline(); }
+
+async function hostCreateEvent() {
+  const title = document.getElementById('hcTitle').value.trim();
+  const date = document.getElementById('hcDate').value;
+  const venue = document.getElementById('hcVenue').value.trim();
+  if (!title) { toast('Event title is required.', 'err'); return; }
+  if (!date) { toast('Event date is required.', 'err'); return; }
+  if (!venue) { toast('Venue is required.', 'err'); return; }
+  const btn = document.getElementById('hcBtn'); btn.disabled = true; btn.textContent = 'Submitting…';
+  let poster = document.getElementById('hcPosterUrl').value.trim();
+  const fileInput = document.getElementById('hcPosterFile');
+  if (!poster && fileInput.files[0]) {
+    poster = await new Promise(res => { const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(fileInput.files[0]); });
+  }
+  try {
+    const r = await fetch(API + '/host/events', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({
+        title, date, venue,
+        description: document.getElementById('hcDesc').value.trim(),
+        category: document.getElementById('hcCat').value,
+        registration_deadline: document.getElementById('hcDeadline').value || null,
+        max_participants: parseInt(document.getElementById('hcMax').value) || 0,
+        prize_pool: document.getElementById('hcPrize').value.trim() || null,
+        poster: poster || null,
+        timeline: hostSteps.filter(s => s.label.trim())
+      })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.message || 'Failed');
+    toast(' Event submitted for approval!');
+    ['hcTitle', 'hcDate', 'hcVenue', 'hcDesc', 'hcDeadline', 'hcMax', 'hcPrize', 'hcPosterUrl'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    hostSteps = defaultHostSteps(); renderHostTimeline();
+    document.getElementById('hostPosterPreview').style.display = 'none';
+    showSec('myevents', document.querySelectorAll('.s-link')[2]);
+  } catch (e) { toast(' ' + e.message, 'err'); }
+  finally { btn.disabled = false; btn.textContent = 'Submit for Approval'; }
+}
+
+function openHostEdit(id) {
+  const e = hostEvents.find(ev => ev.id === id); if (!e) return;
+  document.getElementById('heId').value = e.id;
+  document.getElementById('heTitle').value = e.title;
+  document.getElementById('heDesc').value = e.description || '';
+  document.getElementById('heVenue').value = e.venue || '';
+  document.getElementById('heMax').value = e.max_participants || '';
+  document.getElementById('heDate').value = new Date(e.date).toISOString().slice(0, 16);
+  let tl = e.timeline || [];
+  if (typeof tl === 'string') { try { tl = JSON.parse(tl); } catch { tl = []; } }
+  heSteps = tl.length ? tl.map(s => ({ ...s })) : defaultHostSteps();
+  renderHeTimeline();
+  document.getElementById('hostEditOverlay').classList.add('open');
+}
+
+function renderHeTimeline() {
+  document.getElementById('heTimelineBuilder').innerHTML = heSteps.map((s, i) => stepRowHtml(s, i, 'heSteps')).join('');
+}
+
+function addHeStep() { heSteps.push({ label: '', date: '', done: false }); renderHeTimeline(); }
+function removeheStepsStep(i) { if (heSteps.length <= 1) return; heSteps.splice(i, 1); renderHeTimeline(); }
+
+async function saveHostEdit() {
+  const id = document.getElementById('heId').value;
+  try {
+    const r = await fetch(API + '/host/events/' + id, {
+      method: 'PUT', headers: authHeaders(),
+      body: JSON.stringify({
+        title: document.getElementById('heTitle').value.trim(),
+        description: document.getElementById('heDesc').value.trim(),
+        date: document.getElementById('heDate').value,
+        venue: document.getElementById('heVenue').value.trim(),
+        max_participants: parseInt(document.getElementById('heMax').value) || 0,
+        timeline: heSteps.filter(s => s.label.trim())
+      })
+    });
+    if (!r.ok) throw new Error('Failed');
+    toast(' Event updated!');
+    document.getElementById('hostEditOverlay').classList.remove('open');
+    loadHostManage();
+  } catch (e) { toast(' Update failed.', 'err'); }
+}
+
+async function loadHostAnalytics() {
+  try {
+    const r = await fetch(API + '/host/analytics', { headers: authHeaders() });
+    const data = await r.json();
+    
+    // Clear old charts
+    Object.values(_hCharts).forEach(c => c.destroy()); 
+    _hCharts = {};
+
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    const PALETTE = ['#1a3a8f', '#f5a623', '#10b981', '#ef4444', '#8b5cf6'];
+
+    const evts = data.events || [];
+    
+    // 1. Main Graph: Registrations vs Attendance
+    if (evts.length) {
+      _hCharts.part = new Chart(document.getElementById('hostChartParticipation'), {
+        type: 'bar',
+        data: {
+          labels: evts.map(e => e.title),
+          datasets: [
+            { label: 'Registrations', data: evts.map(e => e.registered_count), backgroundColor: 'rgba(26, 58, 143, 0.7)', borderRadius: 4 },
+            { label: 'Attendance', data: evts.map(e => e.attended_count), backgroundColor: 'rgba(245, 166, 35, 0.8)', borderRadius: 4 }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    // 2. Category Doughnut
+    const catRows = data.categories || [];
+    if (catRows.length) {
+      _hCharts.cat = new Chart(document.getElementById('hostChartCategory'), {
+        type: 'doughnut',
+        data: {
+          labels: catRows.map(r => r.name),
+          datasets: [{ data: catRows.map(r => r.count), backgroundColor: PALETTE, borderWidth: 2 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '65%' }
+      });
+    }
+
+    // 3. Registration Timeline (Line Chart)
+    const tRows = data.monthly || [];
+    if (tRows.length) {
+      _hCharts.tl = new Chart(document.getElementById('hostChartTimeline'), {
+        type: 'line',
+        data: {
+          labels: tRows.map(r => r.month),
+          datasets: [{ label: 'New Registrations', data: tRows.map(r => r.registrations), borderColor: '#1a3a8f', tension: 0.4, fill: true, backgroundColor: 'rgba(26, 58, 143, 0.05)' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    // 4. NEW: Departmental Split (Polar Area)
+    if (data.deptSplit && data.deptSplit.length) {
+      _hCharts.dept = new Chart(document.getElementById('hostChartDept'), {
+        type: 'polarArea',
+        data: {
+          labels: data.deptSplit.map(d => d.name),
+          datasets: [{ data: data.deptSplit.map(d => d.count), backgroundColor: PALETTE }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    // 5. NEW: Year-wise Distribution (Bar)
+    if (data.yearSplit && data.yearSplit.length) {
+      _hCharts.year = new Chart(document.getElementById('hostChartYear'), {
+        type: 'bar',
+        data: {
+          labels: data.yearSplit.map(y => y.name),
+          datasets: [{ label: 'Students', data: data.yearSplit.map(y => y.count), backgroundColor: '#10b981', borderRadius: 4 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+  } catch (e) {
+    console.error("Analytics Error:", e);
+    toast('Could not load analytics.', 'err');
+  }
+}
+
+loadHostDashboard();
+fetchAndRenderNotifs();
+</script>
+</body>
+</html>

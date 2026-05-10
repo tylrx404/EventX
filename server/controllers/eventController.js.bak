@@ -1,0 +1,265 @@
+const db = require("../db");
+const { pushNotification, notifyAllAdmins, notifyEventRegistrants } = require("./notificationController");
+
+// ── Status helper ─────────────────────────────────────────────
+function computeStatus(date, reg_deadline, manualStatus) {
+  // If admin sets a specific override, honour it
+  if (manualStatus && manualStatus !== "registration_open") return manualStatus;
+  const now = new Date();
+  if (reg_deadline && now > new Date(reg_deadline)) return "registration_closed";
+  if (now >= new Date(date)) return "ongoing";
+  return "registration_open";
+}
+
+// ── GET /events ───────────────────────────────────────────────
+exports.getEvents = async (req, res) => {
+  try {
+    const userId       = req.user ? req.user.id : null;
+    const isPrivileged = req.user && ["admin", "host"].includes(req.user.role);
+    const whereClause  = isPrivileged
+      ? ""
+      : "WHERE e.approval_status = 'approved' AND e.status NOT IN ('draft','pending_approval')";
+
+    // Build registered sub-select safely
+    const registeredCol = userId
+      ? `, MAX(CASE WHEN r.user_id = ${parseInt(userId)} THEN 1 ELSE 0 END) AS registered`
+      : "";
+
+    const [rows] = await db.execute(
+      `SELECT e.*, COUNT(DISTINCT r.id) AS registered_count ${registeredCol}
+       FROM Events e
+       LEFT JOIN Registrations r ON r.event_id = e.id
+       ${whereClause}
+       GROUP BY e.id
+       ORDER BY e.date ASC`
+    );
+
+    rows.forEach(parseJsonFields);
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// ── GET /events/upcoming ──────────────────────────────────────
+exports.getUpcomingEvents = async (req, res) => {
+  try {
+    const userId = req.user ? req.user.id : null;
+    const registeredCol = userId
+      ? `, MAX(CASE WHEN r.user_id = ${parseInt(userId)} THEN 1 ELSE 0 END) AS registered`
+      : "";
+
+    const [rows] = await db.execute(
+      `SELECT e.*, COUNT(DISTINCT r.id) AS registered_count ${registeredCol}
+       FROM Events e
+       LEFT JOIN Registrations r ON r.event_id = e.id
+       WHERE e.date >= NOW()
+         AND e.approval_status = 'approved'
+         AND e.status NOT IN ('draft','pending_approval','completed')
+       GROUP BY e.id
+       ORDER BY e.date ASC
+       LIMIT 10`
+    );
+
+    rows.forEach(parseJsonFields);
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// ── GET /events/:id ───────────────────────────────────────────
+exports.getEventById = async (req, res) => {
+  try {
+    const userId = req.user ? req.user.id : null;
+    const registeredCol = userId
+      ? `, MAX(CASE WHEN r.user_id = ${parseInt(userId)} THEN 1 ELSE 0 END) AS registered`
+      : "";
+
+    const [rows] = await db.execute(
+      `SELECT e.*, COUNT(DISTINCT r.id) AS registered_count ${registeredCol}
+       FROM Events e
+       LEFT JOIN Registrations r ON r.event_id = e.id
+       WHERE e.id = ?
+       GROUP BY e.id`,
+      [req.params.id]
+    );
+
+    if (!rows.length) return res.status(404).json({ message: "Event not found." });
+
+    const event = rows[0];
+    parseJsonFields(event);
+    res.status(200).json(event);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// ── POST /admin/events  (admin creates, immediately approved) ─
+exports.createEvent = async (req, res) => {
+  try {
+    const {
+      title, description, date, registration_deadline, venue,
+      category, max_participants, poster, timeline, prize_pool,
+      status, cert_template, cert_fields
+    } = req.body;
+
+    if (!title || !date || !venue)
+      return res.status(400).json({ message: "Title, date and venue are required." });
+
+    const computedStatus = computeStatus(date, registration_deadline, status);
+
+    const [result] = await db.execute(
+      `INSERT INTO Events
+         (title, description, date, registration_deadline, venue, category,
+          max_participants, prize_pool, poster, timeline, status, approval_status,
+          cert_template, cert_fields, host_id)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,'approved',?,?,?)`,
+      [
+        title,
+        description || null,
+        date,
+        registration_deadline || null,
+        venue,
+        category || "Other",
+        max_participants || 0,
+        prize_pool || null,
+        poster || null,
+        timeline ? JSON.stringify(timeline) : null,
+        computedStatus,
+        cert_template || null,
+        cert_fields ? JSON.stringify(cert_fields) : null,
+        req.user.id
+      ]
+    );
+
+    res.status(201).json({ message: "Event created.", id: result.insertId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// ── PUT /admin/events/:id  or  /host/events/:id ───────────────
+exports.updateEvent = async (req, res) => {
+  try {
+    const {
+      title, description, date, registration_deadline, venue,
+      category, max_participants, poster, timeline, prize_pool,
+      status, cert_template, cert_fields
+    } = req.body;
+
+    if (!title || !date || !venue)
+      return res.status(400).json({ message: "Title, date and venue are required." });
+
+    const computedStatus = computeStatus(date, registration_deadline, status);
+    const eventId = req.params.id;
+
+    // Fetch existing event to get host_id before overwriting
+    const [existing] = await db.execute("SELECT host_id, title FROM Events WHERE id=?", [eventId]);
+    if (!existing.length) return res.status(404).json({ message: "Event not found." });
+
+    await db.execute(
+      `UPDATE Events SET
+         title=?, description=?, date=?, registration_deadline=?,
+         venue=?, category=?, max_participants=?, prize_pool=?,
+         poster=?, timeline=?, status=?,
+         cert_template=?, cert_fields=?
+       WHERE id=?`,
+      [
+        title,
+        description || null,
+        date,
+        registration_deadline || null,
+        venue,
+        category || "Other",
+        max_participants || 0,
+        prize_pool || null,
+        poster || null,
+        timeline ? JSON.stringify(timeline) : null,
+        computedStatus,
+        cert_template || null,
+        cert_fields ? JSON.stringify(cert_fields) : null,
+        eventId
+      ]
+    );
+
+    // ── Notifications ─────────────────────────────────────────
+    // 1. Notify all registered students
+    await notifyEventRegistrants(
+      eventId, "info", "📢",
+      "Event Updated",
+      `"${title}" has been updated — check the latest details before attending.`
+    );
+
+    // 2. If admin edited a host's event, notify the host
+    const hostId = existing[0].host_id;
+    if (hostId && req.user.role === "admin") {
+      await pushNotification(
+        hostId, "info", "📝",
+        "Your Event Was Edited",
+        `Admin has updated details for your event "${title}".`
+      );
+    }
+
+    // 3. If host edited their event, notify all admins
+    if (req.user.role === "host") {
+      await notifyAllAdmins(
+        "info", "✏️",
+        "Host Updated an Event",
+        `Host updated "${title}". Review if needed.`
+      );
+    }
+
+    res.status(200).json({ message: "Event updated." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// ── DELETE /admin/events/:id ──────────────────────────────────
+exports.deleteEvent = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const [existing] = await db.execute("SELECT title, host_id FROM Events WHERE id=?", [eventId]);
+    if (!existing.length) return res.status(404).json({ message: "Event not found." });
+
+    const { title, host_id } = existing[0];
+
+    // Notify registered students before deleting (cascade will remove registrations)
+    await notifyEventRegistrants(
+      eventId, "danger", "🚫",
+      "Event Cancelled",
+      `"${title}" has been cancelled. We apologise for any inconvenience.`
+    );
+
+    // Notify host if an admin deleted their event
+    if (host_id && req.user.role === "admin") {
+      await pushNotification(
+        host_id, "danger", "🗑️",
+        "Your Event Was Deleted",
+        `Admin removed your event "${title}".`
+      );
+    }
+
+    await db.execute("DELETE FROM Events WHERE id=?", [eventId]);
+    res.status(200).json({ message: "Event deleted." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// ── Helper: parse JSON columns ────────────────────────────────
+function parseJsonFields(e) {
+  if (e.timeline && typeof e.timeline === "string") {
+    try { e.timeline = JSON.parse(e.timeline); } catch { e.timeline = null; }
+  }
+  if (e.cert_fields && typeof e.cert_fields === "string") {
+    try { e.cert_fields = JSON.parse(e.cert_fields); } catch { e.cert_fields = null; }
+  }
+}

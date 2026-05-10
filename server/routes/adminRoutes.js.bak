@@ -1,0 +1,35 @@
+const express      = require("express");
+const router       = express.Router();
+const controller   = require("../controllers/adminController");
+const eventCtrl    = require("../controllers/eventController");
+const { verifyToken, adminOnly } = require("../middleware/authMiddleware");
+
+const guard = [verifyToken, adminOnly];
+
+// Dashboard stats
+router.get("/admin/stats",        guard, controller.getStats);
+
+// Event management
+router.get("/admin/events",       guard, controller.getEvents);
+router.put("/admin/events/:id",   guard, eventCtrl.updateEvent);
+router.delete("/admin/events/:id",guard, eventCtrl.deleteEvent);
+
+// Participants & scores
+router.get("/admin/participants",              guard, controller.getParticipants);
+router.put("/admin/registrations/:id/score",  guard, controller.updateScore);
+
+// Analytics
+router.get("/admin/analytics",    guard, controller.getAnalytics);
+
+// CSV Export
+router.get("/admin/export/all",           guard, controller.exportAll);
+router.get("/admin/export/:event_id",     guard, controller.exportEvent);
+
+// QR verification
+router.post("/admin/verify-qr",           guard, controller.verifyQR);
+
+// Approval workflow
+router.get("/admin/approvals",                    guard, controller.getApprovals);
+router.put("/admin/approvals/:eventId",           guard, controller.reviewApproval);
+
+module.exports = router;

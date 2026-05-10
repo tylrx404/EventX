@@ -1,0 +1,91 @@
+const db = require("../db");
+
+async function pushNotification(userId, type, icon, title, description) {
+  try {
+    await db.execute(
+      "INSERT INTO Notifications (user_id, type, icon, title, description) VALUES (?, ?, ?, ?, ?)",
+      [userId, type, icon || "", title, description]
+    );
+  } catch (e) {
+    console.error("[notify push failed]", e.message);
+  }
+}
+exports.pushNotification = pushNotification;
+
+async function notifyAllAdmins(type, icon, title, description) {
+  try {
+    const [admins] = await db.execute("SELECT id FROM Users WHERE role='admin'");
+    for (const a of admins)
+      await pushNotification(a.id, type, icon, title, description);
+  } catch (e) {
+    console.error("[notifyAllAdmins failed]", e.message);
+  }
+}
+exports.notifyAllAdmins = notifyAllAdmins;
+
+async function notifyEventRegistrants(eventId, type, icon, title, description) {
+  try {
+    const [users] = await db.execute(
+      "SELECT DISTINCT user_id FROM Registrations WHERE event_id=?",
+      [eventId]
+    );
+    for (const u of users)
+      await pushNotification(u.user_id, type, icon, title, description);
+  } catch (e) {
+    console.error("[notifyEventRegistrants failed]", e.message);
+  }
+}
+exports.notifyEventRegistrants = notifyEventRegistrants;
+
+exports.getNotifications = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
+    const offset = (page - 1) * limit;
+
+    const [rows] = await db.execute(
+      `SELECT * FROM Notifications WHERE user_id=? ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`,
+      [userId]
+    );
+
+    const [[{ total }]] = await db.execute(
+      "SELECT COUNT(*) AS total FROM Notifications WHERE user_id=?",
+      [userId]
+    );
+
+    const unread = rows.filter(n => !n.is_read).length;
+
+    res.status(200).json({
+      notifications: rows,
+      unread,
+      pagination: { total, page, limit, pages: Math.ceil(total / limit) }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+exports.readAll = async (req, res) => {
+  try {
+    await db.execute("UPDATE Notifications SET is_read=1 WHERE user_id=?", [req.user.id]);
+    res.status(200).json({ message: "All marked read." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+exports.readOne = async (req, res) => {
+  try {
+    await db.execute(
+      "UPDATE Notifications SET is_read=1 WHERE id=? AND user_id=?",
+      [req.params.id, req.user.id]
+    );
+    res.status(200).json({ message: "Marked read." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};

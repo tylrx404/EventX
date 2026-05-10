@@ -1,0 +1,286 @@
+const db = require("../db");
+const { pushNotification, notifyAllAdmins, notifyEventRegistrants } = require("./notificationController");
+
+// ── GET /host/stats ───────────────────────────────────────────
+exports.getStats = async (req, res) => {
+  try {
+    const hostId = req.user.id;
+
+    const [[{ my_events }]] = await db.execute(
+      "SELECT COUNT(*) AS my_events FROM Events WHERE host_id=?", [hostId]
+    );
+    const [[{ approved }]] = await db.execute(
+      "SELECT COUNT(*) AS approved FROM Events WHERE host_id=? AND approval_status='approved'", [hostId]
+    );
+    const [[{ pending }]] = await db.execute(
+      "SELECT COUNT(*) AS pending FROM EventApprovals WHERE host_id=? AND status='pending'", [hostId]
+    );
+    const [[{ total_registrations }]] = await db.execute(
+      `SELECT COUNT(*) AS total_registrations
+       FROM Registrations r
+       JOIN Events e ON r.event_id = e.id
+       WHERE e.host_id=?`, [hostId]
+    );
+
+    const [events] = await db.execute(`
+      SELECT e.id, e.title, e.date, e.category, e.status, e.approval_status,
+             COUNT(r.id) AS registered_count, e.max_participants
+      FROM Events e
+      LEFT JOIN Registrations r ON r.event_id = e.id
+      WHERE e.host_id = ?
+      GROUP BY e.id
+      ORDER BY e.date DESC
+      LIMIT 10
+    `, [hostId]);
+
+    res.status(200).json({ my_events, approved, pending, total_registrations, events });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// ── GET /host/events ──────────────────────────────────────────
+exports.getEvents = async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT e.*,
+COUNT(r.id) AS registered_count,
+MAX(ea.status) AS approval_req_status,
+MAX(ea.admin_note) AS admin_note,
+MAX(ea.host_message) AS host_message
+FROM Events e
+LEFT JOIN Registrations r ON r.event_id = e.id
+LEFT JOIN EventApprovals ea ON ea.event_id = e.id
+WHERE e.host_id = ?
+GROUP BY e.id
+ORDER BY e.date DESC
+
+    `, [req.user.id]);
+
+    rows.forEach(e => {
+      if (e.timeline && typeof e.timeline === "string") {
+        try { e.timeline = JSON.parse(e.timeline); } catch { e.timeline = null; }
+      }
+      if (e.cert_fields && typeof e.cert_fields === "string") {
+        try { e.cert_fields = JSON.parse(e.cert_fields); } catch { e.cert_fields = null; }
+      }
+    });
+
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// ── POST /host/events  (creates as draft/pending, submits to admin) ─
+exports.createEvent = async (req, res) => {
+  try {
+    const {
+      title, description, date, registration_deadline, venue,
+      category, max_participants, poster, timeline, prize_pool,
+      cert_template, cert_fields,
+      host_message   // message for admin when requesting approval
+    } = req.body;
+
+    if (!title || !date || !venue)
+      return res.status(400).json({ message: "Title, date and venue are required." });
+
+    const hostId = req.user.id;
+
+    // Create event in pending_approval state
+    const [result] = await db.execute(
+      `INSERT INTO Events
+         (title, description, date, registration_deadline, venue, category,
+          max_participants, prize_pool, poster, timeline, status, approval_status,
+          cert_template, cert_fields, host_id)
+       VALUES (?,?,?,?,?,?,?,?,?,?,'pending_approval','pending',?,?,?)`,
+      [
+        title, description || null, date, registration_deadline || null,
+        venue, category || "Other", max_participants || 0,
+        prize_pool || null, poster ?? null,
+        timeline ? JSON.stringify(timeline) : JSON.stringify([]),
+        cert_template || null,
+        cert_fields ? JSON.stringify(cert_fields) : null,
+        hostId
+      ]
+    );
+
+    const eventId = result.insertId;
+
+    // Create approval request with optional host message
+    await db.execute(
+      "INSERT INTO EventApprovals (event_id, host_id, status, host_message) VALUES (?,?,'pending',?)",
+      [eventId, hostId, host_message || null]
+    );
+
+    // Notify all admins
+    const [hostRow] = await db.execute("SELECT name FROM Users WHERE id=?", [hostId]);
+    const hostName  = hostRow.length ? hostRow[0].name : "A host";
+    await notifyAllAdmins(
+      "info", "📋",
+      "New Event Pending Approval",
+      `${hostName} submitted "${title}" for approval. ${host_message ? 'Message: "' + host_message + '"' : ""}`
+    );
+
+    res.status(201).json({ message: "Event submitted for approval.", id: eventId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// ── PUT /host/events/:id ──────────────────────────────────────
+exports.updateEvent = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const hostId  = req.user.id;
+
+    // Ensure this event belongs to the host
+    const [chk] = await db.execute("SELECT id, title FROM Events WHERE id=? AND host_id=?", [eventId, hostId]);
+    if (!chk.length) return res.status(403).json({ message: "Event not found or access denied." });
+
+    const {
+      title, description, date, registration_deadline, venue,
+      category, max_participants, poster, timeline, prize_pool,
+      cert_template, cert_fields
+    } = req.body;
+
+    if (!title || !date || !venue)
+      return res.status(400).json({ message: "Title, date and venue are required." });
+
+    await db.execute(
+      `UPDATE Events SET
+         title=?, description=?, date=?, registration_deadline=?,
+         venue=?, category=?, max_participants=?, prize_pool=?,
+         poster=?, timeline=?, cert_template=?, cert_fields=?
+       WHERE id=? AND host_id=?`,
+      [
+        title, description || null, date, registration_deadline || null,
+        venue, category || "Other", max_participants || 0,
+        prize_pool || null, poster ?? null,
+        timeline ? JSON.stringify(timeline) : null,
+        cert_template || null,
+        cert_fields ? JSON.stringify(cert_fields) : null,
+        eventId, hostId
+      ]
+    );
+
+    // Notify registered students
+    await notifyEventRegistrants(eventId, "info", "📢",
+      "Event Updated",
+      `"${title}" has been updated — check the latest details.`
+    );
+
+    // Notify admins
+    await notifyAllAdmins("info", "✏️", "Host Updated an Event", `"${title}" was updated by its host.`);
+
+    res.status(200).json({ message: "Event updated." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// ── GET /host/events/:id/participants ─────────────────────────
+exports.getParticipants = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const hostId  = req.user.id;
+
+    // Verify ownership
+    const [chk] = await db.execute("SELECT id FROM Events WHERE id=? AND host_id=?", [eventId, hostId]);
+    if (!chk.length) return res.status(403).json({ message: "Event not found or access denied." });
+
+    const [rows] = await db.execute(`
+      SELECT r.id AS registration_id, r.ticket_id, r.status, r.score, r.position, r.registration_date AS registered_at,
+             u.name, u.email, u.department, u.year
+      FROM Registrations r
+      JOIN Users u ON r.user_id = u.id
+      WHERE r.event_id = ?
+      ORDER BY r.registration_date ASC
+    `, [eventId]);
+
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// ── PUT /host/registrations/:id/score ────────────────────────
+exports.updateScore = async (req, res) => {
+  try {
+    const regId  = req.params.id;
+    const hostId = req.user.id;
+    const { score, position } = req.body;
+
+    // Verify the registration belongs to one of this host's events
+    const [chk] = await db.execute(
+      `SELECT r.id, r.user_id, e.title
+       FROM Registrations r
+       JOIN Events e ON r.event_id = e.id
+       WHERE r.id=? AND e.host_id=?`,
+      [regId, hostId]
+    );
+    if (!chk.length) return res.status(403).json({ message: "Registration not found or access denied." });
+
+    await db.execute(
+      "UPDATE Registrations SET score=?, position=? WHERE id=?",
+      [score ?? null, position || null, regId]
+    );
+
+    // Notify student
+    await pushNotification(
+      chk[0].user_id, "success", "🏆",
+      "Score Updated",
+      `Your score for "${chk[0].title}" has been updated!`
+    );
+
+    res.status(200).json({ message: "Score updated." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// ── GET /host/analytics ───────────────────────────────────────
+exports.getAnalytics = async (req, res) => {
+  try {
+    const hostId = req.user.id;
+
+    const [events] = await db.execute(`
+      SELECT e.id, e.title, e.category,
+             COUNT(r.id) AS registered_count,
+             SUM(CASE WHEN r.status='attended' THEN 1 ELSE 0 END) AS attended_count
+      FROM Events e
+      LEFT JOIN Registrations r ON r.event_id = e.id
+      WHERE e.host_id = ?
+      GROUP BY e.id
+      ORDER BY registered_count DESC
+    `, [hostId]);
+
+    const [categories] = await db.execute(`
+      SELECT COALESCE(e.category,'Other') AS name, COUNT(r.id) AS count
+      FROM Events e
+      LEFT JOIN Registrations r ON r.event_id = e.id
+      WHERE e.host_id = ?
+      GROUP BY e.category
+    `, [hostId]);
+
+    const [monthly] = await db.execute(`
+      SELECT DATE_FORMAT(r.registration_date,'%Y-%m') AS month, COUNT(*) AS registrations
+      FROM Registrations r
+      JOIN Events e ON r.event_id = e.id
+      WHERE e.host_id = ?
+      GROUP BY month
+      ORDER BY month ASC
+    `, [hostId]);
+
+    res.status(200).json({ events, categories, monthly });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};

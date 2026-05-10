@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Event Details — EventX</title>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:       #0f1e3c;
+      --navy-mid:   #1a2f5a;
+      --amber:      #f5a623;
+      --white:      #ffffff;
+      --bg:         #f0f4fb;
+      --text-main:  #1a1a2e;
+      --text-muted: #6b7280;
+      --success:    #22c55e;
+      --warning:    #f59e0b;
+      --danger:     #ef4444;
+      --info:       #3b82f6;
+      --border:     #e5e7eb;
+      --shadow-sm:  0 2px 8px rgba(15,30,60,0.08);
+      --shadow-md:  0 6px 24px rgba(15,30,60,0.12);
+      --radius:     14px;
+      --radius-sm:  8px;
+    }
+
+    body {
+      font-family: 'Comfortaa', cursive;
+      background: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    .topnav {
+      background: var(--navy);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: var(--shadow-md);
+    }
+    .nav-brand {
+      font-family: 'Comfortaa', cursive;
+      font-size: 1.4rem; color: var(--white);
+      text-decoration: none;
+    }
+    .nav-brand span { color: var(--amber); }
+    .nav-back {
+      display: flex; align-items: center; gap: 0.4rem;
+      color: rgba(255,255,255,0.75);
+      text-decoration: none; font-size: 0.88rem; font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-back:hover { color: var(--amber); }
+
+    /* ── PAGE ── */
+    .page-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 5rem;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── HERO ── */
+    .hero-chips {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .chip {
+      font-size: 0.7rem; font-weight: 700;
+      padding: 3px 10px; border-radius: 99px; letter-spacing: 0.4px;
+    }
+    .chip-category { background: #dbeafe; color: #1e40af; }
+    .chip-open     { background: #dcfce7; color: #166534; }
+    .chip-closed   { background: #fee2e2; color: #991b1b; }
+    .chip-ongoing  { background: #fef9c3; color: #854d0e; }
+    .chip-done     { background: #f3f4f6; color: #4b5563; }
+
+    .hero-title {
+      font-family: 'Comfortaa', cursive;
+      font-size: 1.9rem; color: var(--navy);
+      line-height: 1.2; margin-bottom: 1.2rem;
+    }
+    .hero-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.75rem;
+    }
+    .meta-item {
+      display: flex; align-items: center; gap: 0.55rem;
+      font-size: 0.88rem; color: var(--text-muted);
+    }
+    .meta-item strong { color: var(--text-main); font-weight: 600; }
+    .meta-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: #f0f4fb;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.95rem; flex-shrink: 0;
+    }
+
+    /* ── PARTICIPATION BAR ── */
+    .section-label {
+      font-family: 'Comfortaa', cursive;
+      font-size: 1.1rem; color: var(--navy);
+      margin-bottom: 1rem;
+    }
+    .part-row {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 0.5rem;
+    }
+    .part-text { font-size: 0.88rem; color: var(--text-muted); }
+    .part-nums { font-size: 0.88rem; font-weight: 700; color: var(--navy); }
+    .progress-track {
+      width: 100%; height: 10px;
+      background: #e5e7eb; border-radius: 99px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, var(--navy), var(--amber));
+      transition: width 1s cubic-bezier(.4,0,.2,1);
+      width: 0%; /* animated in by JS */
+    }
+    .progress-fill.full { background: linear-gradient(90deg, #ef4444, #f97316); }
+    .part-caption {
+      font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem;
+      text-align: right;
+    }
+
+    /* ── TIMELINE ── */
+    .timeline-wrap {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 0.5rem 0 1rem;
+      overflow-x: auto;
+    }
+
+    /* Connecting line */
+    .timeline-wrap::before {
+      content: '';
+      position: absolute;
+      top: 18px; left: 18px; right: 18px;
+      height: 2px;
+      background: var(--border);
+      z-index: 0;
+    }
+
+    .tl-step {
+      display: flex; flex-direction: column; align-items: center;
+      flex: 1; min-width: 90px; position: relative; z-index: 1;
+      padding: 0 4px;
+    }
+
+    /* Dot */
+    .tl-dot {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 700;
+      border: 2px solid var(--border);
+      background: var(--white);
+      margin-bottom: 0.55rem;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+    }
+    .tl-dot.done {
+      background: var(--navy);
+      border-color: var(--navy);
+      color: var(--white);
+    }
+    .tl-dot.active {
+      background: var(--amber);
+      border-color: var(--amber);
+      color: var(--navy);
+      box-shadow: 0 0 0 4px rgba(245,166,35,0.2);
+    }
+    .tl-dot.pending {
+      background: var(--white);
+      border-color: var(--border);
+      color: var(--text-muted);
+    }
+
+    /* Line fill for done steps */
+    .tl-step.done-step::after {
+      content: '';
+      position: absolute;
+      top: 17px; left: 50%; right: -50%;
+      height: 4px;
+      background: var(--navy);
+      z-index: -1;
+    }
+    .tl-step:last-child::after { display: none; }
+
+    .tl-label {
+      font-size: 0.7rem; font-weight: 600;
+      color: var(--text-muted);
+      text-align: center; line-height: 1.3;
+    }
+    .tl-label.done-label   { color: var(--navy); }
+    .tl-label.active-label { color: var(--amber-dark, #d4891a); font-weight: 700; }
+
+    .tl-date {
+      font-size: 0.63rem; color: #9ca3af;
+      text-align: center; margin-top: 2px;
+    }
+
+    /* ── DESCRIPTION ── */
+    .event-description {
+      font-size: 0.95rem; line-height: 1.75;
+      color: var(--text-muted);
+    }
+
+    /* ── ADD TO CALENDAR ── */
+    .calendar-row {
+      display: flex; gap: 1rem; flex-wrap: wrap;
+    }
+    .btn-cal {
+      display: inline-flex; align-items: center; gap: 0.55rem;
+      padding: 10px 20px; border-radius: var(--radius-sm);
+      font-family: 'Comfortaa', cursive;
+      font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; border: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+      text-decoration: none;
+    }
+    .btn-cal:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .btn-google {
+      background: var(--white); color: var(--navy);
+      border: 2px solid var(--navy);
+    }
+    .btn-google:hover { background: var(--navy); color: var(--white); }
+    .btn-ics {
+      background: var(--navy); color: var(--white);
+    }
+    .btn-ics:hover { background: var(--navy-mid); }
+
+    /* ── REGISTER SECTION ── */
+    .register-card {
+      background: linear-gradient(135deg, var(--navy) 0%, #1a2f5a 100%);
+      border-radius: var(--radius);
+      padding: 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1.5rem; flex-wrap: wrap;
+    }
+    .reg-info h3 {
+      font-family: 'Comfortaa', cursive;
+      font-size: 1.3rem; color: var(--white); margin-bottom: 0.3rem;
+    }
+    .reg-info p { font-size: 0.85rem; color: rgba(255,255,255,0.65); }
+
+    .btn-register {
+      background: var(--amber); color: var(--navy);
+      border: none; cursor: pointer;
+      padding: 12px 32px; border-radius: var(--radius-sm);
+      font-family: 'Comfortaa', cursive;
+      font-size: 1rem; font-weight: 700;
+      transition: background 0.2s, transform 0.15s;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .btn-register:hover:not(:disabled) {
+      background: #d4891a; transform: scale(1.04);
+    }
+    .btn-register:disabled {
+      background: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.4);
+      cursor: not-allowed;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 2rem; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--navy); color: var(--white);
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem; font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      z-index: 999;
+      transition: transform 0.35s cubic-bezier(.4,0,.2,1), opacity 0.35s;
+      opacity: 0; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error   { border-left: 4px solid var(--danger); }
+
+    /* ── SKELETON ── */
+    .skeleton {
+      background: linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer {
+      0%  { background-position: 200% 0; }
+      100%{ background-position: -200% 0; }
+    }
+
+    /* ── FADE IN ── */
+    .fade-in {
+      opacity: 0; transform: translateY(16px);
+      animation: fadeUp 0.4s ease forwards;
+    }
+    @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+    .fade-in:nth-child(1){ animation-delay:.05s; }
+    .fade-in:nth-child(2){ animation-delay:.12s; }
+    .fade-in:nth-child(3){ animation-delay:.18s; }
+    .fade-in:nth-child(4){ animation-delay:.24s; }
+    .fade-in:nth-child(5){ animation-delay:.30s; }
+    .fade-in:nth-child(6){ animation-delay:.36s; }
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:600px){
+      .hero-title { font-size: 1.4rem; }
+      .card { padding: 1.3rem; }
+      .register-card { flex-direction: column; align-items: flex-start; }
+      .btn-register { width: 100%; text-align: center; }
+      .topnav { padding: 0 1rem; }
+      .tl-step { min-width: 70px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a class="nav-brand" href="events.html">Event<span>X</span></a>
+  <div style="display:flex;gap:1rem;align-items:center;">
+    <a class="nav-link" href="my-registrations.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:0.85rem;">My Passes </a>
+    <a class="nav-back" href="events.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:0.85rem;font-weight:600;">← Events</a>
+  </div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<div class="page-wrap">
+
+  
+  <div class="card fade-in" id="heroCard">
+    <div style="height:24px;width:120px;" class="skeleton" style="margin-bottom:1rem"></div>
+    <div style="height:36px;width:80%;margin:1rem 0 1.5rem;" class="skeleton"></div>
+    <div style="height:16px;width:60%;margin-bottom:.75rem;" class="skeleton"></div>
+    <div style="height:16px;width:45%;" class="skeleton"></div>
+  </div>
+
+  
+  <div class="card fade-in" id="participationCard" style="display:none">
+    <div class="section-label"> Participation</div>
+    <div class="part-row">
+      <span class="part-text">Registered Participants</span>
+      <span class="part-nums" id="partNums">— / —</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="part-caption" id="partCaption"></div>
+  </div>
+
+  
+  <div class="card fade-in" id="timelineCard" style="display:none">
+    <div class="section-label" style="margin-bottom:1.5rem">️ Event Timeline</div>
+    <div class="timeline-wrap" id="timelineWrap"></div>
+  </div>
+
+  
+  <div class="card fade-in" id="descCard" style="display:none">
+    <div class="section-label" style="margin-bottom:.75rem"> About this Event</div>
+    <p class="event-description" id="eventDesc"></p>
+  </div>
+
+  
+  <div class="card fade-in" id="calCard" style="display:none">
+    <div class="section-label" style="margin-bottom:1rem"> Add to Calendar</div>
+    <div class="calendar-row">
+      <button class="btn-cal btn-google" id="btnGoogle" onclick="addToGoogle()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+          <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        Add to Google Calendar
+      </button>
+      <button class="btn-cal btn-ics" onclick="downloadICS()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2"/>
+          <polyline points="7 10 12 15 17 10" stroke="currentColor" stroke-width="2"/>
+          <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        Download .ics File
+      </button>
+    </div>
+    <p style="font-size:.75rem;color:var(--text-muted);margin-top:.85rem;">
+      Adds event name, date, time, venue, and description to your calendar.
+    </p>
+  </div>
+
+  
+  <div class="register-card fade-in" id="registerCard" style="display:none">
+    <div class="reg-info">
+      <h3 id="regTitle">Register for this Event</h3>
+      <p id="regSubtitle">Secure your spot before it's full.</p>
+    </div>
+    <button class="btn-register" id="btnRegister" onclick="register()">
+      Register Now
+    </button>
+  </div>
+
+</div>
+
+<script>
+/* ════════════════════════════════════════════════
+   CONFIG
+   ════════════════════════════════════════════════ */
+const API  = "http://localhost:5000/api";
+const id   = new URLSearchParams(window.location.search).get("id");
+const user = JSON.parse(localStorage.getItem("user") || "null");
+
+if (!id)   window.location.href = "events.html";
+if (!user) window.location.href = "login.html";
+
+let _event = null; // store fetched event for calendar use
+
+/* ════════════════════════════════════════════════
+   STATUS MAP
+   ════════════════════════════════════════════════ */
+const STATUS_MAP = {
+  registration_open:   { label: "Registration Open",   cls: "chip-open"    },
+  registration_closed: { label: "Registration Closed", cls: "chip-closed"  },
+  ongoing:             { label: "Event Ongoing",        cls: "chip-ongoing" },
+  completed:           { label: "Event Completed",      cls: "chip-done"    }
+};
+
+/* ════════════════════════════════════════════════
+   TOAST
+   ════════════════════════════════════════════════ */
+function showToast(msg, type = "success") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className   = `toast ${type} show`;
+  setTimeout(() => t.classList.remove("show"), 3200);
+}
+
+/* ════════════════════════════════════════════════
+   RENDER HERO
+   ════════════════════════════════════════════════ */
+function renderHero(e) {
+  const d     = new Date(e.date);
+  const dateStr = d.toLocaleDateString("en-IN", {
+    weekday:"long", year:"numeric", month:"long", day:"numeric"
+  });
+  const timeStr = d.toLocaleTimeString("en-IN", {
+    hour:"2-digit", minute:"2-digit"
+  });
+  const st = STATUS_MAP[e.status] || STATUS_MAP.registration_open;
+
+  document.getElementById("heroCard").innerHTML = `
+    <div class="hero-chips">
+      <span class="chip chip-category">${e.category || "General"}</span>
+      <span class="chip ${st.cls}">${st.label}</span>
+    </div>
+    <h1 class="hero-title">${e.title}</h1>
+    <div class="hero-meta">
+      <div class="meta-item">
+        <div class="meta-icon"></div>
+        <div><div style="font-size:.7rem;color:var(--text-muted)">Venue</div>
+          <strong>${e.venue || "TBA"}</strong></div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-icon"></div>
+        <div><div style="font-size:.7rem;color:var(--text-muted)">Date</div>
+          <strong>${dateStr}</strong></div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-icon"></div>
+        <div><div style="font-size:.7rem;color:var(--text-muted)">Time</div>
+          <strong>${timeStr}</strong></div>
+      </div>
+      ${e.registration_deadline ? `
+      <div class="meta-item">
+        <div class="meta-icon">⏰</div>
+        <div><div style="font-size:.7rem;color:var(--text-muted)">Reg. Deadline</div>
+          <strong>${new Date(e.registration_deadline).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</strong></div>
+      </div>` : ""}
+    </div>`;
+}
+
+/* ════════════════════════════════════════════════
+   RENDER PARTICIPATION BAR
+   ════════════════════════════════════════════════ */
+function renderParticipation(e) {
+  const max      = e.max_participants || 0;
+  const current  = e.registered_count || 0;
+  if (!max) return;
+
+  const pct  = Math.min(100, Math.round((current / max) * 100));
+  const left = max - current;
+  const full = current >= max;
+
+  document.getElementById("partNums").textContent    = `${current} / ${max}`;
+  document.getElementById("partCaption").textContent =
+    full ? "️ Event is full" : `${left} slot${left !== 1 ? "s" : ""} remaining`;
+
+  document.getElementById("participationCard").style.display = "block";
+
+  // Animate fill after paint
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const fill = document.getElementById("progressFill");
+      fill.style.width = pct + "%";
+      if (full) fill.classList.add("full");
+    });
+  });
+}
+
+/* ════════════════════════════════════════════════
+   RENDER TIMELINE
+   ════════════════════════════════════════════════ */
+function renderTimeline(timelineRaw) {
+  let steps = [];
+
+  /* timeline stored as JSON string in DB */
+  if (typeof timelineRaw === "string") {
+    try { steps = JSON.parse(timelineRaw); } catch(_) {}
+  } else if (Array.isArray(timelineRaw)) {
+    steps = timelineRaw;
+  }
+
+  /* Default timeline if none stored */
+  if (!steps || steps.length === 0) {
+    steps = [
+      { label: "Registration Opens",    done: true  },
+      { label: "Registration Deadline", done: false },
+      { label: "Preliminary Round",     done: false },
+      { label: "Final Round",           done: false },
+      { label: "Prize Distribution",    done: false }
+    ];
+  }
+
+  /* Find first non-done = active */
+  let activeSeen = false;
+  const html = steps.map((step, i) => {
+    let dotCls   = "done";
+    let labelCls = "done-label";
+    let stepCls  = "done-step";
+    let icon     = "";
+
+    if (!step.done) {
+      if (!activeSeen) {
+        dotCls   = "active";
+        labelCls = "active-label";
+        stepCls  = "";
+        icon     = (i + 1).toString();
+        activeSeen = true;
+      } else {
+        dotCls   = "pending";
+        labelCls = "";
+        stepCls  = "";
+        icon     = (i + 1).toString();
+      }
+    }
+
+    return `
+      <div class="tl-step ${stepCls}">
+        <div class="tl-dot ${dotCls}">${icon}</div>
+        <div class="tl-label ${labelCls}">${step.label}</div>
+        ${step.date ? `<div class="tl-date">${formatShortDate(step.date)}</div>` : ""}
+      </div>`;
+  }).join("");
+
+  document.getElementById("timelineWrap").innerHTML = html;
+  document.getElementById("timelineCard").style.display = "block";
+}
+
+function formatShortDate(str) {
+  if (!str) return "";
+  const d = new Date(str);
+  return d.toLocaleDateString("en-IN", { day:"numeric", month:"short" });
+}
+
+/* ════════════════════════════════════════════════
+   RENDER DESCRIPTION
+   ════════════════════════════════════════════════ */
+function renderDescription(e) {
+  document.getElementById("eventDesc").textContent = e.description || "No description available.";
+  document.getElementById("descCard").style.display = "block";
+}
+
+/* ════════════════════════════════════════════════
+   RENDER REGISTER SECTION
+   ════════════════════════════════════════════════ */
+function renderRegister(e) {
+  const max     = e.max_participants || Infinity;
+  const current = e.registered_count || 0;
+  const full    = current >= max;
+  const closed  = e.status === "completed" || e.status === "ongoing";
+  const regClosed = e.status === "registration_closed";
+
+  const btn      = document.getElementById("btnRegister");
+  const subtitle = document.getElementById("regSubtitle");
+
+  if (closed) {
+    btn.disabled       = true;
+    btn.textContent    = e.status === "completed" ? "Event Completed" : "Event Ongoing";
+    subtitle.textContent = "Registration is no longer available.";
+  } else if (regClosed || full) {
+    btn.disabled       = true;
+    btn.textContent    = full ? "Event Full" : "Registration Closed";
+    subtitle.textContent = full
+      ? "All participant slots have been filled."
+      : "Registration deadline has passed.";
+  } else {
+    btn.disabled       = false;
+    btn.textContent    = "Register Now";
+    subtitle.textContent = "Secure your spot before it's full.";
+  }
+
+  document.getElementById("registerCard").style.display = "flex";
+}
+
+/* ════════════════════════════════════════════════
+   REGISTER ACTION
+   ════════════════════════════════════════════════ */
+async function register() {
+  const btn = document.getElementById("btnRegister");
+  btn.disabled     = true;
+  btn.textContent  = "Registering…";
+
+  try {
+    const res = await fetch(`${API}/register-event`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + user.token
+      },
+      body: JSON.stringify({ event_id: id })
+    });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message || "Registration failed");
+
+    showToast(" Registered successfully!", "success");
+    btn.textContent = "Registered ";
+
+    // Refresh participant count
+    await loadEvent();
+
+  } catch (err) {
+    showToast(" " + err.message, "error");
+    btn.disabled    = false;
+    btn.textContent = "Register Now";
+  }
+}
+
+/* ════════════════════════════════════════════════
+   ADD TO GOOGLE CALENDAR
+   ════════════════════════════════════════════════ */
+function addToGoogle() {
+  if (!_event) return;
+  const start = toGCalDate(new Date(_event.date));
+  const end   = toGCalDate(new Date(new Date(_event.date).getTime() + 2 * 3600000)); // +2hr default
+
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text:   _event.title,
+    dates:  `${start}/${end}`,
+    details: _event.description || "",
+    location: _event.venue || ""
+  });
+
+  window.open(`https://calendar.google.com/calendar/render?${params.toString()}`, "_blank");
+}
+
+function toGCalDate(d) {
+  return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+}
+
+/* ════════════════════════════════════════════════
+   DOWNLOAD ICS FILE
+   ════════════════════════════════════════════════ */
+function downloadICS() {
+  if (!_event) return;
+  const start = toICSDate(new Date(_event.date));
+  const end   = toICSDate(new Date(new Date(_event.date).getTime() + 2 * 3600000));
+  const uid   = `eventx-${_event.id}-${Date.now()}@mmcoe`;
+  const now   = toICSDate(new Date());
+
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//EventX//MMCOE//EN",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${now}`,
+    `DTSTART:${start}`,
+    `DTEND:${end}`,
+    `SUMMARY:${escapeICS(_event.title)}`,
+    `DESCRIPTION:${escapeICS(_event.description || "")}`,
+    `LOCATION:${escapeICS(_event.venue || "")}`,
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ].join("\r\n");
+
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `${_event.title.replace(/\s+/g, "_")}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  showToast(" Calendar file downloaded!", "success");
+}
+
+function toICSDate(d) {
+  return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+}
+function escapeICS(str) {
+  return (str || "").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+}
+
+/* ════════════════════════════════════════════════
+   LOAD EVENT FROM API
+   ════════════════════════════════════════════════ */
+async function loadEvent() {
+  try {
+    const res = await fetch(`${API}/events/${id}`, {
+      headers: user ? { "Authorization": "Bearer " + user.token } : {}
+    });
+    if (!res.ok) throw new Error("Event not found");
+    const e = await res.json();
+    _event = e;
+
+    document.title = `${e.title} — EventX`;
+
+    renderHero(e);
+    renderParticipation(e);
+    renderTimeline(e.timeline);
+    renderDescription(e);
+    renderRegister(e);
+
+    // Show all cards
+    ["calCard"].forEach(id => {
+      document.getElementById(id).style.display = "block";
+    });
+
+  } catch (err) {
+    document.getElementById("heroCard").innerHTML = `
+      <div style="text-align:center;padding:3rem;color:var(--text-muted)">
+        <div style="font-size:2.5rem;margin-bottom:.75rem">️</div>
+        <p>Could not load event. <a href="events.html">Go back</a></p>
+      </div>`;
+  }
+}
+
+/* ── INIT ── */
+loadEvent();
+</script>
+</body>
+</html>

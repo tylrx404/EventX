@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Admin Panel — MMCOE Event Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div id="_nav"></div>
+<div id="_notif"></div>
+<div class="toast" id="_toast"></div>
+
+<div class="app">
+  <div id="_side"></div>
+  <main class="main">
+
+    <div class="sec on" id="sec-dashboard">
+      <div class="ph"><div><h1>Admin Dashboard</h1><p>Overview of all events and registrations.</p></div></div>
+      <div class="stats">
+        <div class="stat"><div><div class="stat-num" id="dTotal">—</div><div class="stat-lbl">Total Events</div></div><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div></div>
+        <div class="stat"><div><div class="stat-num" id="dRegs">—</div><div class="stat-lbl">Total Registrations</div></div><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div></div>
+        <div class="stat"><div><div class="stat-num" id="dActive">—</div><div class="stat-lbl">Active Events</div></div><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
+        <div class="stat"><div><div class="stat-num" id="dPending">—</div><div class="stat-lbl">Pending Approvals</div></div><div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><h2>Event Summary</h2></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Event</th><th>Category</th><th>Date</th><th>Status</th><th>Fill</th></tr></thead>
+            <tbody id="sumBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-approvals">
+      <div class="ph"><div><h1>Event Approvals</h1><p>Review and approve event requests from hosts.</p></div></div>
+      <div id="approvalsList"><div class="empty"><div class="icon">⏳</div><p>Loading…</p></div></div>
+    </div>
+
+    <div class="sec" id="sec-create">
+      <div class="ph"><div><h1>Create Event</h1><p>Publish a new event directly as admin.</p></div></div>
+      <div class="card"><div class="card-bd">
+        <div class="fg2">
+          <div class="fg"><label class="fl">Event Name</label><input class="fi" id="cTitle" type="text" placeholder="e.g. TechFest 2026"/></div>
+          <div class="fg"><label class="fl">Category</label><select class="fs" id="cCat"><option value="">Select</option><option>Technical</option><option>Coding</option><option>Cultural</option><option>Sports</option><option>Workshop</option><option>Quiz</option><option>Competitions</option><option>Other</option></select></div>
+        </div>
+        <div class="fg"><label class="fl">Description</label><textarea class="ft" id="cDesc" placeholder="Brief description…"></textarea></div>
+        <div class="fg3">
+          <div class="fg"><label class="fl">Event Date</label><input class="fi" id="cDate" type="datetime-local"/></div>
+          <div class="fg"><label class="fl">Registration Deadline</label><input class="fi" id="cDeadline" type="datetime-local"/></div>
+          <div class="fg"><label class="fl">Venue</label><input class="fi" id="cVenue" type="text" placeholder="e.g. MMCOE Auditorium"/></div>
+        </div>
+        <div class="fg2">
+          <div class="fg"><label class="fl">Max Participants</label><input class="fi" id="cMax" type="number" min="1" placeholder="e.g. 200"/></div>
+          <div class="fg"><label class="fl">Prize Pool <span class="opt">(optional)</span></label><input class="fi" id="cPrize" type="text" placeholder="e.g. ₹50,000"/></div>
+        </div>
+        <div class="fg">
+          <label class="fl">Poster Image</label>
+          <div style="display:flex;gap:0.75rem;align-items:flex-start;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <input class="fi" id="cPosterUrl" type="url" placeholder="Paste image URL…" oninput="previewAdminPoster()"/>
+              <div style="text-align:center;color:var(--muted);font-size:0.75rem;margin:6px 0">or</div>
+              <input type="file" id="cPosterFile" accept="image/*" class="fi" style="padding:5px" onchange="handlePosterFile(this)"/>
+            </div>
+            <div id="adminPosterPreview" style="display:none;width:100px;height:80px;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);flex-shrink:0">
+              <img id="adminPosterImg" src="" style="width:100%;height:100%;object-fit:cover"/>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="cBtn" onclick="createEvent()">Publish Event</button>
+      </div></div>
+    </div>
+
+    <div class="sec" id="sec-manage">
+      <div class="ph"><div><h1>Manage Events</h1><p>Edit, update timeline, or remove existing events.</p></div></div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Event</th><th>Date</th><th>Registrations</th><th>Capacity</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="manBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-participants">
+      <div class="ph">
+        <div><h1>Participants</h1><p>All registered participants across events.</p></div>
+        <button class="btn btn-primary" onclick="exportCSV()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+      </div>
+      <div class="fg2" style="margin-bottom:1rem">
+        <div class="fg" style="margin:0">
+          <select class="fs" id="partEventFilter" onchange="filterParticipants()">
+            <option value="">All Events</option>
+          </select>
+        </div>
+        <div class="search-wrap">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <input class="search-input" id="partSearch" placeholder="Search participants…" oninput="filterParticipants()"/>
+        </div>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Student</th><th>Email</th><th>Department</th><th>Event</th><th>Score</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="partBody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec" id="sec-analytics">
+      <div class="ph"><div><h1>Analytics</h1><p>Insights across all events.</p></div></div>
+      <div class="analytics-stats" id="analyticsStats"></div>
+      <div class="chart-grid">
+        <div class="chart-card" style="grid-column:1/-1">
+          <h3>Daily Registration Trend</h3>
+          <div class="chart-wrap"><canvas id="chartRegTime"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Event Category Distribution</h3>
+          <div class="chart-wrap"><canvas id="chartCategory"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Monthly Registrations</h3>
+          <div class="chart-wrap"><canvas id="chartMonthly"></canvas></div>
+        </div>
+        <div class="chart-card" style="grid-column:1/-1">
+          <h3>Event Participation</h3>
+          <div class="chart-wrap"><canvas id="chartTopEvents"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="overlay" id="editOverlay">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-hd"><h3>Edit Event</h3><button class="modal-close" onclick="closeModal('editOverlay')"></button></div>
+    <div class="modal-bd" style="max-height:70vh;overflow-y:auto">
+      <input type="hidden" id="eId"/>
+      <div class="fg"><label class="fl">Event Title</label><input class="fi" id="eTitle" type="text"/></div>
+      <div class="fg"><label class="fl">Description</label><textarea class="ft" id="eDesc"></textarea></div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Date</label><input class="fi" id="eDate" type="datetime-local"/></div>
+        <div class="fg"><label class="fl">Venue</label><input class="fi" id="eVenue" type="text"/></div>
+      </div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Max Participants</label><input class="fi" id="eMax" type="number"/></div>
+        <div class="fg"><label class="fl">Status</label>
+          <select class="fs" id="eStatus">
+            <option value="registration_open">Registration Open</option>
+            <option value="registration_closed">Registration Closed</option>
+            <option value="ongoing">Ongoing</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:1rem">
+        <div style="font-size:0.75rem;font-weight:600;color:var(--text);margin-bottom:8px">Timeline Stages</div>
+        <div id="editTimelineBuilder" style="display:flex;flex-direction:column;gap:6px"></div>
+        <button onclick="addEditStep()" style="margin-top:8px;width:100%;padding:7px;border:2px dashed var(--border);border-radius:var(--r-sm);background:none;color:var(--muted);font-size:0.8rem;cursor:pointer">+ Add Stage</button>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('editOverlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="scoreOverlay">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-hd"><h3>Update Score</h3><button class="modal-close" onclick="closeModal('scoreOverlay')"></button></div>
+    <div class="modal-bd">
+      <input type="hidden" id="scoreRegId"/>
+      <div class="fg"><label class="fl">Score</label><input class="fi" id="scoreVal" type="number" min="0" placeholder="e.g. 85"/></div>
+      <div class="fg"><label class="fl">Position / Rank <span class="opt">(optional)</span></label><input class="fi" id="scorePos" type="text" placeholder="e.g. 1st Place, Participant"/></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('scoreOverlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveScore()">Save Score</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="delOverlay">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-hd"><h3>Delete Event</h3><button class="modal-close" onclick="closeModal('delOverlay')"></button></div>
+    <div class="modal-bd"><p style="color:var(--muted);font-size:0.85rem">Are you sure you want to delete <strong id="delName"></strong>? This cannot be undone.</p></div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('delOverlay')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDel()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="approvalNoteOverlay">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-hd"><h3 id="approvalNoteTitle">Review Event</h3><button class="modal-close" onclick="closeModal('approvalNoteOverlay')"></button></div>
+    <div class="modal-bd">
+      <input type="hidden" id="approvalEventId"/>
+      <input type="hidden" id="approvalAction"/>
+      <div class="fg"><label class="fl">Note to Host <span class="opt">(optional)</span></label><textarea class="ft" id="approvalNote" placeholder="Add a note for the host…"></textarea></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('approvalNoteOverlay')">Cancel</button>
+      <button class="btn btn-primary" id="approvalSubmitBtn" onclick="submitApproval()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/shared.js"></script>
+<script>
+const user = requireAuth('admin');
+if (!user) throw '';
+
+document.getElementById('_nav').innerHTML = renderTopnav('dashboard');
+document.getElementById('_side').innerHTML = renderAdminSidebar('dashboard');
+document.getElementById('_notif').innerHTML = renderNotifDrawer();
+
+let events = [], parts = [], allParts = [], delId = null, editSteps = [];
+let _charts = {};
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+window.showSec = function(name, el) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.s-link').forEach(l => l.classList.remove('active'));
+  const sec = document.getElementById('sec-' + name);
+  if (sec) sec.classList.add('on');
+  el?.classList.add('active');
+  if (name === 'dashboard') loadDashboard();
+  else if (name === 'approvals') loadApprovals();
+  else if (name === 'manage') loadManage();
+  else if (name === 'participants') loadParticipants();
+  else if (name === 'analytics') loadAnalytics();
+};
+
+async function loadDashboard() {
+  try {
+    const r = await fetch(API + "/admin/stats", { headers: authHeaders() });
+    const d = await r.json();
+    document.getElementById('dTotal').textContent = d.total_events || 0;
+    document.getElementById('dRegs').textContent = d.total_registrations || 0;
+    document.getElementById('dActive').textContent = d.active_events || 0;
+    document.getElementById('dPending').textContent = d.pending_approvals || 0;
+    const tb = document.getElementById('sumBody');
+    const evts = d.events || [];
+    if (!evts.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">No events yet</td></tr>'; return; }
+    tb.innerHTML = evts.map(e => {
+      const fill = e.max_participants > 0 ? Math.round((e.registered_count || 0) / e.max_participants * 100) : 0;
+      const fillCls = fill >= 90 ? 'red' : fill >= 60 ? 'amber' : '';
+      const statusChip = {
+        registration_open: '<span class="chip chip-confirmed">Open</span>',
+        registration_closed: '<span class="chip chip-rejected">Closed</span>',
+        ongoing: '<span class="chip chip-pending">Ongoing</span>',
+        completed: '<span class="chip" style="background:#f3f4f6;color:#4b5563">Done</span>',
+        pending_approval: '<span class="chip chip-pending">Pending</span>'
+      }[e.status] || '<span class="chip chip-pending">Draft</span>';
+      return `<tr>
+        <td style="font-weight:600">${e.title}</td>
+        <td>${e.category || '—'}</td>
+        <td>${fmtDate(e.date)}</td>
+        <td>${statusChip}</td>
+        <td><div class="fbar"><div class="fbar-track"><div class="fbar-fill ${fillCls}" style="width:${fill}%"></div></div><span class="fbar-pct">${fill}%</span></div></td>
+      </tr>`;
+    }).join('');
+  } catch (e) {}
+}
+
+async function loadApprovals() {
+  try {
+    const r = await fetch(API + "/admin/approvals", { headers: authHeaders() });
+    const pending = await r.json();
+    const el = document.getElementById('approvalsList');
+    if (!Array.isArray(pending) || !pending.length) {
+      el.innerHTML = '<div class="empty"><div class="icon"></div><h3>No pending approvals</h3><p>All event requests have been reviewed.</p></div>';
+      return;
+    }
+    el.innerHTML = pending.map(a => `
+      <div class="approval-item">
+        <div class="approval-info">
+          <div class="approval-title">${a.title}</div>
+          <div class="approval-meta">${a.category || 'General'} · ${fmtDate(a.date)} · ${a.venue || 'TBD'} · Requested by <strong>${a.host_name || 'Host'}</strong></div>
+        </div>
+        <div class="approval-actions">
+          <button class="btn btn-success btn-sm" onclick="openApproval(${a.id}, 'approve')">Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="openApproval(${a.id}, 'reject')">Reject</button>
+        </div>
+      </div>`).join('');
+  } catch (e) {}
+}
+
+function openApproval(eventId, action) {
+  document.getElementById('approvalEventId').value = eventId;
+  document.getElementById('approvalAction').value = action;
+  document.getElementById('approvalNoteTitle').textContent = action === 'approve' ? 'Approve Event' : 'Reject Event';
+  document.getElementById('approvalSubmitBtn').className = action === 'approve' ? 'btn btn-success' : 'btn btn-danger';
+  document.getElementById('approvalSubmitBtn').textContent = action === 'approve' ? 'Approve' : 'Reject';
+  document.getElementById('approvalNote').value = '';
+  document.getElementById('approvalNoteOverlay').classList.add('open');
+}
+
+async function submitApproval() {
+  const eventId = document.getElementById('approvalEventId').value;
+  const action = document.getElementById('approvalAction').value;
+  const note = document.getElementById('approvalNote').value.trim();
+  try {
+    const r = await fetch(API + '/admin/approvals/' + eventId, {
+      method: 'PUT', headers: authHeaders(),
+      body: JSON.stringify({ action, note })
+    });
+    if (!r.ok) throw new Error('Failed');
+    toast(action === 'approve' ? ' Event approved and published!' : ' Event rejected.', action === 'approve' ? 'ok' : 'err');
+    closeModal('approvalNoteOverlay');
+    loadApprovals();
+    loadDashboard();
+  } catch (e) { toast('Failed to process approval.', 'err'); }
+}
+
+async function loadManage() {
+  try {
+    const r = await fetch(API + "/admin/events", { headers: authHeaders() });
+    events = await r.json();
+    if (!Array.isArray(events)) events = [];
+    const tb = document.getElementById('manBody');
+    if (!events.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">No events yet</td></tr>'; return; }
+    tb.innerHTML = events.map(e => `<tr>
+      <td style="font-weight:600">${e.title}</td>
+      <td>${fmtDate(e.date)}</td>
+      <td>${e.registered_count || 0}</td>
+      <td>${e.max_participants || '∞'}</td>
+      <td><span class="chip ${e.status === 'registration_open' ? 'chip-confirmed' : e.status === 'completed' ? '' : 'chip-pending'}" style="${e.status === 'completed' ? 'background:#f3f4f6;color:#4b5563' : ''}">${e.status?.replace(/_/g, ' ') || 'draft'}</span></td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn-edit" onclick="openEdit(${e.id})">Edit</button>
+        <button class="btn-del" onclick="openDel(${e.id},'${e.title.replace(/'/g,"\\'")}')">Delete</button>
+      </td>
+    </tr>`).join('');
+  } catch (e) {}
+}
+
+async function loadParticipants() {
+  try {
+    const r = await fetch(API + "/admin/participants", { headers: authHeaders() });
+    allParts = await r.json();
+    if (!Array.isArray(allParts)) allParts = [];
+    const sel = document.getElementById('partEventFilter');
+    const uniqueEvents = [...new Map(allParts.map(p => [p.event_id, p.event_title])).entries()];
+    sel.innerHTML = '<option value="">All Events</option>' + uniqueEvents.map(([id, t]) => `<option value="${id}">${t}</option>`).join('');
+    renderParticipants(allParts);
+  } catch (e) {}
+}
+
+function filterParticipants() {
+  const evtId = document.getElementById('partEventFilter').value;
+  const q = document.getElementById('partSearch').value.toLowerCase();
+  let list = allParts;
+  if (evtId) list = list.filter(p => String(p.event_id) === evtId);
+  if (q) list = list.filter(p => (p.name + p.email + (p.department || '')).toLowerCase().includes(q));
+  renderParticipants(list);
+}
+
+function renderParticipants(list) {
+  const tb = document.getElementById('partBody');
+  if (!list.length) { tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem">No participants found</td></tr>'; return; }
+  tb.innerHTML = list.map(p => `<tr>
+    <td style="font-weight:600">${p.name}</td>
+    <td>${p.email}</td>
+    <td>${p.department || '—'}</td>
+    <td>${p.event_title || '—'}</td>
+    <td style="font-weight:600;color:var(--navy)">${p.score != null ? p.score : '—'}</td>
+    <td><span class="chip chip-confirmed">${p.status || 'Registered'}</span></td>
+    <td><button class="btn-edit" onclick="openScore(${p.registration_id || p.id}, '${(p.score ?? '')}', '${(p.position || '')}')">Score</button></td>
+  </tr>`).join('');
+}
+
+function exportCSV() {
+  if (!allParts.length) { toast('No data to export.', 'err'); return; }
+  const rows = [['Name', 'Email', 'Department', 'Event', 'Score', 'Position', 'Status'],
+    ...allParts.map(p => [p.name, p.email, p.department || '', p.event_title || '', p.score ?? '', p.position || '', 'Confirmed'])];
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); a.download = 'participants.csv'; a.click();
+}
+
+function openScore(regId, score, pos) {
+  document.getElementById('scoreRegId').value = regId;
+  document.getElementById('scoreVal').value = score;
+  document.getElementById('scorePos').value = pos;
+  document.getElementById('scoreOverlay').classList.add('open');
+}
+
+async function saveScore() {
+  const id = document.getElementById('scoreRegId').value;
+  const score = document.getElementById('scoreVal').value;
+  const pos = document.getElementById('scorePos').value.trim();
+  try {
+    const r = await fetch(API + '/admin/registrations/' + id + '/score', {
+      method: 'PUT', headers: authHeaders(),
+      body: JSON.stringify({ score: parseInt(score) || null, position: pos || null })
+    });
+    if (!r.ok) throw new Error('Failed');
+    toast(' Score updated!');
+    closeModal('scoreOverlay');
+    loadParticipants();
+  } catch (e) { toast(' Failed to update score.', 'err'); }
+}
+
+function openEdit(id) {
+  const e = events.find(ev => ev.id === id); if (!e) return;
+  document.getElementById('eId').value = e.id;
+  document.getElementById('eTitle').value = e.title;
+  document.getElementById('eDesc').value = e.description || '';
+  document.getElementById('eVenue').value = e.venue || '';
+  document.getElementById('eMax').value = e.max_participants || '';
+  document.getElementById('eDate').value = new Date(e.date).toISOString().slice(0, 16);
+  document.getElementById('eStatus').value = e.status || 'registration_open';
+  let tl = e.timeline || [];
+  if (typeof tl === 'string') { try { tl = JSON.parse(tl); } catch { tl = []; } }
+  editSteps = tl.length ? tl.map(s => ({ ...s })) : [
+    { label: 'Registration Opens', date: '', done: false },
+    { label: 'Registration Deadline', date: '', done: false },
+    { label: 'Event Day', date: '', done: false }
+  ];
+  renderEditTimeline();
+  document.getElementById('editOverlay').classList.add('open');
+}
+
+function renderEditTimeline() {
+  const el = document.getElementById('editTimelineBuilder');
+  el.innerHTML = editSteps.map((s, i) => `
+    <div style="display:flex;gap:6px;align-items:center;background:#f8faff;border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 10px">
+      <div style="width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">${i + 1}</div>
+      <input type="text" value="${s.label || ''}" placeholder="Stage name" oninput="editSteps[${i}].label=this.value" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.82rem;font-family:var(--font)"/>
+      <input type="date" value="${s.date || ''}" oninput="editSteps[${i}].date=this.value" style="padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:0.8rem;font-family:var(--font);width:130px"/>
+      <label style="display:flex;align-items:center;gap:3px;font-size:0.72rem;color:var(--muted);white-space:nowrap">
+        <input type="checkbox" ${s.done ? 'checked' : ''} onchange="editSteps[${i}].done=this.checked" style="accent-color:var(--navy)"/> Done
+      </label>
+      <button onclick="removeEditStep(${i})" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1rem;padding:2px 4px" title="Remove"></button>
+    </div>`).join('');
+}
+
+function addEditStep() { editSteps.push({ label: '', date: '', done: false }); renderEditTimeline(); }
+function removeEditStep(i) { if (editSteps.length <= 1) return; editSteps.splice(i, 1); renderEditTimeline(); }
+
+async function saveEdit() {
+  const id = document.getElementById('eId').value;
+  try {
+    const r = await fetch(API + '/admin/events/' + id, {
+      method: 'PUT', headers: authHeaders(),
+      body: JSON.stringify({
+        title: document.getElementById('eTitle').value.trim(),
+        description: document.getElementById('eDesc').value.trim(),
+        date: document.getElementById('eDate').value,
+        venue: document.getElementById('eVenue').value.trim(),
+        max_participants: parseInt(document.getElementById('eMax').value) || 0,
+        status: document.getElementById('eStatus').value,
+        timeline: editSteps.filter(s => s.label.trim())
+      })
+    });
+    if (!r.ok) throw new Error('Failed');
+    toast(' Event updated!');
+    closeModal('editOverlay');
+    loadManage();
+  } catch (e) { toast(' Update failed.', 'err'); }
+}
+
+function openDel(id, name) { delId = id; document.getElementById('delName').textContent = name; document.getElementById('delOverlay').classList.add('open'); }
+
+async function confirmDel() {
+  if (!delId) return;
+  try {
+    const r = await fetch(API + '/admin/events/' + delId, { method: 'DELETE', headers: authHeaders() });
+    if (!r.ok) throw new Error('Failed');
+    toast(' Event deleted!'); closeModal('delOverlay'); delId = null; loadManage();
+  } catch (e) { toast(' Delete failed.', 'err'); }
+}
+
+function previewAdminPoster() {
+  const url = document.getElementById('cPosterUrl').value.trim();
+  const wrap = document.getElementById('adminPosterPreview');
+  const img = document.getElementById('adminPosterImg');
+  if (url) { img.src = url; wrap.style.display = 'block'; }
+  else wrap.style.display = 'none';
+}
+
+function handlePosterFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('adminPosterImg').src = e.target.result;
+    document.getElementById('adminPosterPreview').style.display = 'block';
+    document.getElementById('cPosterUrl').value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function createEvent() {
+  const title = document.getElementById('cTitle').value.trim();
+  const date = document.getElementById('cDate').value;
+  const venue = document.getElementById('cVenue').value.trim();
+  if (!title) { toast('Event title is required.', 'err'); return; }
+  if (!date) { toast('Event date is required.', 'err'); return; }
+  if (!venue) { toast('Venue is required.', 'err'); return; }
+  const btn = document.getElementById('cBtn'); btn.disabled = true; btn.textContent = 'Publishing…';
+  let poster = document.getElementById('cPosterUrl').value.trim();
+  const fileInput = document.getElementById('cPosterFile');
+  if (!poster && fileInput.files[0]) {
+    poster = await new Promise(res => { const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(fileInput.files[0]); });
+  }
+  try {
+    const r = await fetch(API + '/admin/events', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({
+        title, date, venue,
+        description: document.getElementById('cDesc').value.trim(),
+        category: document.getElementById('cCat').value,
+        registration_deadline: document.getElementById('cDeadline').value || null,
+        max_participants: parseInt(document.getElementById('cMax').value) || 0,
+        prize_pool: document.getElementById('cPrize').value.trim() || null,
+        poster: poster || null,
+        status: 'registration_open'
+      })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.message || 'Failed');
+    toast(' Event published!');
+    ['cTitle', 'cDate', 'cVenue', 'cDesc', 'cDeadline', 'cMax', 'cPrize', 'cPosterUrl'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('adminPosterPreview').style.display = 'none';
+    showSec('manage', document.querySelectorAll('.s-link')[3]);
+  } catch (e) { toast(' ' + e.message, 'err'); }
+  finally { btn.disabled = false; btn.textContent = 'Publish Event'; }
+}
+
+async function loadAnalytics() {
+  try {
+    const r = await fetch(API + '/admin/analytics', { headers: authHeaders() });
+    const data = await r.json();
+
+    const statsEl = document.getElementById('analyticsStats');
+    statsEl.innerHTML = [
+      { label: 'Total Events', val: data.totalEvents || 0 },
+      { label: 'Total Registrations', val: data.totalRegistrations || 0 },
+      { label: 'Active Events', val: data.activeEvents || 0 },
+      { label: 'Avg Reg / Event', val: data.avgRegistrations || 0 }
+    ].map(s => `<div class="stat"><div><div class="stat-num">${s.val}</div><div class="stat-lbl">${s.label}</div></div></div>`).join('');
+
+    Object.values(_charts).forEach(c => c.destroy());
+    _charts = {};
+
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.size = 11;
+    Chart.defaults.color = "#6b7280";
+
+    const PALETTE = ['#1a3a8f', '#f5a623', '#10b981', '#ef4444', '#8b5cf6', '#14b8a6', '#f97316'];
+
+    const rotRows = data.registrationsOverTime || [];
+    if (rotRows.length) {
+      _charts.rot = new Chart(document.getElementById('chartRegTime'), {
+        type: 'line',
+        data: {
+          labels: rotRows.map(r => { const d = new Date(r.day); return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }); }),
+          datasets: [{ label: 'Registrations', data: rotRows.map(r => r.count), borderColor: '#1a3a8f', backgroundColor: 'rgba(26,58,143,0.08)', borderWidth: 2.5, pointBackgroundColor: '#f5a623', pointRadius: 4, fill: true, tension: 0.4 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
+      });
+    }
+
+    const catRows = data.eventsByCategory || [];
+    if (catRows.length) {
+      _charts.cat = new Chart(document.getElementById('chartCategory'), {
+        type: 'doughnut',
+        data: { labels: catRows.map(r => r.category), datasets: [{ data: catRows.map(r => r.count), backgroundColor: catRows.map((_, i) => PALETTE[i % PALETTE.length]), borderWidth: 2, borderColor: '#fff' }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    const mRows = data.monthlyRegistrations || [];
+    if (mRows.length) {
+      _charts.monthly = new Chart(document.getElementById('chartMonthly'), {
+        type: 'bar',
+        data: { labels: mRows.map(r => r.month), datasets: [{ label: 'Registrations', data: mRows.map(r => r.count), backgroundColor: 'rgba(26,58,143,0.75)', borderRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+      });
+    }
+
+    const topRows = data.topEvents || [];
+    if (topRows.length) {
+      _charts.top = new Chart(document.getElementById('chartTopEvents'), {
+        type: 'bar',
+        data: {
+          labels: topRows.map(r => r.title),
+          datasets: [{ label: 'Registrations', data: topRows.map(r => r.registrations), backgroundColor: topRows.map((_, i) => PALETTE[i % PALETTE.length]), borderRadius: 4 }]
+        },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+      });
+    }
+
+  } catch (e) { toast('Could not load analytics.', 'err'); }
+}
+
+loadDashboard();
+fetchAndRenderNotifs();
+</script>
+</body>
+</html>
