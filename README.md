@@ -1,71 +1,151 @@
-EventX | 1st Prize - Inhouse Product Development Competition 🏆
-EventX is a centralized campus event management ecosystem developed to digitize and streamline institutional engagements. The project was awarded 1st Prize in the Inhouse Product Development Competition and is currently slated for live institutional deployment.
+# EventX - Campus Event Management Platform
 
-Place your main dashboard screenshot here
+🏆 1st Prize Winner — Inhouse Product Development Competition
 
-🚀 Project Overview
-Our institution faced a challenge with fragmented, manual event coordination. EventX solves this by providing a unified platform for students, faculty hosts, and administrators. It moves the campus toward a paperless initiative by automating everything from event approval to attendee check-in.
+EventX is a full-stack campus event management platform developed to digitize and streamline institutional event operations. The platform enables students, organizers, and administrators to manage the complete event lifecycle through a centralized system.
 
-🥇 Achievements
-1st Prize Winner: Inhouse Product Development Competition.
+The project was recognized with 1st Prize in the Inhouse Product Development Competition for its practical implementation, scalable architecture, and real-world institutional applicability.
 
-Selection for Deployment: Recognized for institutional-grade reliability and scheduled for campus-wide integration.
+---
 
-🛠️ Key Features
-👤 Student Portal
-Event Discovery: Browse technical, cultural, and sports events with real-time status updates.
+# 🚀 Project Overview
 
-Digital Ticketing: Instant registration with a unique QR-coded ticket for entry.
+Traditional event management within institutions often involves fragmented communication, manual registrations, and inefficient attendance tracking.
 
-Personalized Dashboard: Track registrations, scores, and download participation certificates.
+EventX addresses these challenges through a centralized digital platform that automates:
 
-🏛️ Admin & Faculty Panel
-Approval Workflow: A robust state-machine logic allowing Admins to review and approve event proposals.
+- Event creation & approvals
+- Student registrations
+- QR-based attendance verification
+- Analytics & engagement tracking
+- Certificate management
+- Role-based administration
 
-Real-time Analytics: Visual insights into student engagement and registration trends using Chart.js.
+The system was designed with a focus on scalability, usability, and paperless institutional workflows.
 
-Role-Based Control: Secure management of user permissions and event moderation.
+---
 
-📱 Host (Organizer) Tools
-Event Lifecycle Management: Draft, submit, and manage events from a single interface.
+# 🏆 Achievements
 
-Automated Attendance: Native QR Scanner to verify student entries and update attendance databases instantly.
+- 🥇 1st Prize — Inhouse Product Development Competition
+- 📌 Recognized for real-world institutional implementation potential
+- 💡 Developed as a collaborative product-focused solution for campus digitization
 
-📸 Product Gallery
-Product Photos available in the Product Galary Folder
+---
 
-💻 Technical Stack
-Frontend: HTML5, CSS3 (Grid & Flexbox), JavaScript (ES6+)
+# ✨ Key Features
 
-Backend: Node.js, Express.js
+## 👤 Student Portal
 
-Database: MySQL (Relational Schema)
+- Browse technical, cultural, and sports events
+- Real-time registration status updates
+- QR-based digital ticket generation
+- Personalized dashboard for registrations and participation history
+- Certificate download support
 
-Authentication: JWT (JSON Web Tokens) for session persistence
+---
 
-Visualization: Chart.js
+## 🏛️ Admin & Faculty Panel
 
-API Architecture: RESTful
+- Role-based access control
+- Event proposal approval workflow
+- Event moderation & management
+- Student participation monitoring
+- Real-time analytics using Chart.js
 
-⚙️ Installation & Setup
-Clone the repository:
+---
 
-Install dependencies:
+## 📱 Organizer Dashboard
 
-Configure Environment:
-Create a .env file in the root directory and add your credentials:
+- Create and manage events
+- Track registrations and attendance
+- QR Scanner for automated attendee verification
+- Event lifecycle management
 
-Run the application:
+---
 
-👥 The Winning Team
-Varad Tanawade
-Arya Joshi
-Vedant Pathak
-Mrunal Kolhe 
+# 💻 Tech Stack
 
-🙏 Acknowledgments
-A special thank you to:
+## Frontend
+- HTML5
+- CSS3
+- JavaScript (ES6+)
 
-Dr. Kalpana Thakre (Head of Department) for the institutional vision and platform.
+## Backend
+- Node.js
+- Express.js
 
-Dr. Sankirti Shiravale and Prof. Mayuri Shelke for their technical mentorship throughout the project development.
+## Database
+- MySQL
+
+## Authentication
+- JWT (JSON Web Tokens)
+
+## Visualization
+- Chart.js
+
+## Architecture
+- RESTful API Architecture
+
+---
+
+# ⚙️ Installation & Setup
+
+## Clone the repository
+
+```bash
+git clone https://github.com/tylrx404/EventX.git
+```
+
+## Install dependencies
+
+```bash
+npm install
+```
+
+## Configure environment variables
+
+Create a `.env` file and add the required credentials.
+
+---
+
+## Run the application
+
+```bash
+npm start
+```
+
+---
+
+# 📂 Project Structure
+
+```bash
+client/
+server/
+database/
+```
+
+---
+
+# 📸 Product Gallery
+
+Project screenshots and UI previews are available in the `Product Gallery` folder.
+
+---
+
+# 👥 Team Members
+
+- Varad Tanawade
+- Arya Joshi
+- Vedant Pathak
+- Mrunal Kolhe
+
+---
+
+# 📌 Future Improvements
+
+- Mobile application integration
+- Email & notification services
+- Advanced analytics dashboard
+- Cloud deployment support
+- AI-based recommendation system
